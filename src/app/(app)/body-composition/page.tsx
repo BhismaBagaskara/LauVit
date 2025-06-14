@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -12,6 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
 import type { BodyCompositionRecord } from "@/lib/types";
+import { format } from "date-fns";
 
 const bodyCompositionSchema = z.object({
   weightKg: z.coerce.number().positive("Weight must be positive."),
@@ -101,7 +103,7 @@ export default function BodyCompositionPage() {
           <GlassCard className="animate-fade-in" style={{animationDelay: '0.2s'}}>
             <GlassCardHeader>
               <GlassCardTitle>Analysis Results</GlassCardTitle>
-              <GlassCardDescription>Based on the metrics you provided on {format(analysisResult.date!, "PPP")}.</GlassCardDescription>
+              <GlassCardDescription>Based on the metrics you provided on {analysisResult.date ? format(analysisResult.date, "PPP") : "N/A"}.</GlassCardDescription>
             </GlassCardHeader>
             <GlassCardContent className="space-y-4">
               <div>
@@ -136,3 +138,4 @@ function getBmiCategory(bmi: number): string {
 function FormItem({children, className}: {children: React.ReactNode, className?: string}) {
   return <div className={`space-y-1.5 ${className}`}>{children}</div>;
 }
+
