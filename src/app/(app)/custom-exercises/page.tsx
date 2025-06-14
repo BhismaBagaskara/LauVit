@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { PlusSquare, Edit3, Trash2, Save, Image as ImageIcon, Info } from "lucide-react";
+import { PlusSquare, Edit3, Trash2, Save, Image as ImageIcon, Info, PlusCircle } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,7 +26,19 @@ import {
   DialogTrigger,
   DialogFooter,
   DialogClose
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 const manualExerciseSchema = z.object({
   id: z.string().optional(), // For editing
@@ -237,3 +250,4 @@ export default function CustomExercisesPage() {
 function FormItem({children, className}: {children: React.ReactNode, className?: string}) {
   return <div className={`space-y-1.5 ${className}`}>{children}</div>;
 }
+
