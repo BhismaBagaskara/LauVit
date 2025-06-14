@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect } from 'react';
@@ -61,7 +62,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarMenu>
             {SIDEBAR_NAV_ITEMS.map((item: NavItem) => (
               <SidebarMenuItem key={item.title}>
-                <Link href={item.href} legacyBehavior passHref>
+                <Link href={item.href}>
                   <SidebarMenuButton
                     isActive={pathname.startsWith(item.href)}
                     tooltip={item.title}
