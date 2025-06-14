@@ -14,7 +14,7 @@ import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from "@/
 import { PlusCircle, Trash2, Save, FileText, Image as ImageIcon, AlertTriangle, Info, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { GymPlan, Exercise } from "@/lib/types";
-// import { MOCK_EXERCISES_DATA } from "@/lib/constants"; // Mock data removed
+import { APP_NAME } from "@/lib/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getExerciseInstructions } from "@/ai/flows/exercise-instruction-assistance";
 import { useState, useEffect } from "react";
@@ -31,70 +31,125 @@ import {
 } from "@/components/ui/dialog"
 
 const exerciseSchema = z.object({
+  id: z.string().optional(), // Keep exercise ID if it comes from a predefined list
   name: z.string().min(1, "Exercise name is required"),
   variations: z.string().optional(),
   sets: z.coerce.number().min(1, "Sets must be at least 1"),
   reps: z.string().min(1, "Reps are required (e.g., 8-12, AMRAP)"),
   imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   instructions: z.string().optional(),
-  day: z.string().optional(),
+  day: z.string().optional(), // e.g., "Push Day", "Monday"
 });
 
 const gymPlanSchema = z.object({
   name: z.string().min(1, "Plan name is required"),
   description: z.string().optional(),
   isActive: z.boolean().default(false),
-  exercises: z.array(exerciseSchema).min(1, "Add at least one exercise"),
+  exercises: z.array(exerciseSchema).min(1, "Add at least one exercise to the plan"),
 });
 
 type GymPlanFormValues = z.infer<typeof gymPlanSchema>;
 
 interface GymPlanFormProps {
-  initialData?: GymPlan; // For editing existing plans
+  initialData?: GymPlan;
 }
 
 export function GymPlanForm({ initialData }: GymPlanFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [aiInstructions, setAiInstructions] = useState<{ exerciseIndex: number, text: string, isLoading: boolean } | null>(null);
-  const [availableExercises, setAvailableExercises] = useState<{label: string, value: string}[]>([]);
+  const [availableExercises, setAvailableExercises] = useState<{label: string, value: string}[]>([]); // For exercise name dropdown
 
-  useEffect(() => {
-    // In a real app, fetch custom exercises and perhaps a global list
-    // For now, MOCK_EXERCISES_DATA is empty, so this will be empty too.
+  // useEffect(() => {
+    // This could fetch a global list of exercises or user's custom exercises
+    // For now, it will be empty if MOCK_EXERCISES_DATA is empty.
     // const exerciseOptions = MOCK_EXERCISES_DATA.map(ex => ({label: `${ex.name} ${ex.variations ? `(${ex.variations})` : ''}`, value: ex.id}));
     // setAvailableExercises(exerciseOptions);
-  }, []);
+  // }, []);
 
 
   const form = useForm<GymPlanFormValues>({
     resolver: zodResolver(gymPlanSchema),
     defaultValues: initialData
-      ? { ...initialData, exercises: initialData.exercises.map(ex => ({...ex, imageUrl: ex.imageUrl || ""})) } // Ensure imageUrl is string
+      ? { 
+          ...initialData, 
+          exercises: initialData.exercises.map(ex => ({
+            ...ex, 
+            id: ex.id || `ex_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // ensure id
+            imageUrl: ex.imageUrl || "",
+            day: ex.day || "" 
+          })) 
+        }
       : {
           name: "",
           description: "",
           isActive: false,
-          exercises: [{ name: "", sets: 3, reps: "8-12", imageUrl: "", instructions: "", day: "" }],
+          exercises: [{ 
+            id: `ex_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, 
+            name: "", 
+            sets: 3, 
+            reps: "8-12", 
+            imageUrl: "", 
+            instructions: "", 
+            day: "" 
+          }],
         },
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "exercises",
   });
 
   const onSubmit = (data: GymPlanFormValues) => {
-    console.log("Gym Plan Saved:", data);
+    let plans: GymPlan[] = [];
+    if (typeof window !== 'undefined') {
+      const storedPlans = localStorage.getItem(`${APP_NAME}_gymPlans`);
+      plans = storedPlans ? JSON.parse(storedPlans) : [];
+    }
+
+    const planToSave: GymPlan = {
+      ...data,
+      id: initialData?.id || `plan_${Date.now()}`,
+      createdAt: initialData?.createdAt || new Date(),
+      updatedAt: new Date(),
+      exercises: data.exercises.map(ex => ({
+        ...ex,
+        id: ex.id || `ex_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` // Ensure exercises have IDs
+      }))
+    };
+    
+    if (planToSave.isActive) {
+      plans = plans.map(p => ({ ...p, isActive: false }));
+    }
+
+    if (initialData) {
+      plans = plans.map(p => p.id === initialData.id ? planToSave : p);
+    } else {
+      plans.push(planToSave);
+    }
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`${APP_NAME}_gymPlans`, JSON.stringify(plans));
+    }
+
     toast({
       title: initialData ? "Plan Updated!" : "Plan Created!",
       description: `Gym plan "${data.name}" has been saved.`,
     });
-    router.push("/gym-plans"); // Redirect after save
+    router.push("/gym-plans");
   };
 
   const addExercise = () => {
-    append({ name: "", sets: 3, reps: "8-12", imageUrl: "", instructions: "", day: "" });
+    append({ 
+      id: `ex_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: "", 
+      sets: 3, 
+      reps: "8-12", 
+      imageUrl: "", 
+      instructions: "", 
+      day: "" 
+    });
   };
   
   const handleGetAiInstructions = async (exerciseIndex: number) => {
@@ -174,14 +229,16 @@ export function GymPlanForm({ initialData }: GymPlanFormProps) {
                         <Select 
                           onValueChange={(value) => {
                             if (value === 'custom') {
-                               // Potentially open a dialog to add custom exercise or navigate
-                              // For now, allow typing directly or clear field
-                              selectField.onChange(''); // Clear or handle custom input
+                              selectField.onChange(''); 
+                               toast({title: "Custom Exercise", description: "Type the name of your custom exercise below."})
                             } else {
+                              // If selected from list, potentially auto-fill other details like instructions if available
+                              const selectedExerciseData = availableExercises.find(ex => ex.label === value); // This is a simple match
                               selectField.onChange(value);
+                              // Example: form.setValue(`exercises.${index}.instructions`, selectedExerciseData?.instructions || "");
                             }
                           }} 
-                          defaultValue={selectField.value}
+                          value={selectField.value}
                         >
                           <SelectTrigger className="input-animated">
                             <SelectValue placeholder="Select or type exercise" />
@@ -190,14 +247,16 @@ export function GymPlanForm({ initialData }: GymPlanFormProps) {
                             {availableExercises.map(ex => (
                               <SelectItem key={ex.value} value={ex.label}>{ex.label}</SelectItem>
                             ))}
-                             {/* If availableExercises is empty, this is the only option */}
-                            <SelectItem value="custom">Add Custom Exercise Name...</SelectItem>
+                            <SelectItem value="custom">Type Custom Exercise Name...</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
                     />
-                     {/* Fallback to Input if select doesn't cover direct typing well, or enhance Select for creatable options */}
-                     {/* <Input placeholder="Type exercise name" {...form.register(`exercises.${index}.name`)} className="input-animated mt-1" /> */}
+                     <Input 
+                        placeholder="Type or confirm exercise name" 
+                        {...form.register(`exercises.${index}.name`)} 
+                        className="input-animated mt-1" 
+                     />
                   {form.formState.errors.exercises?.[index]?.name && <p className="text-sm text-destructive mt-1">{form.formState.errors.exercises?.[index]?.name?.message}</p>}
                 </FormItem>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -218,7 +277,8 @@ export function GymPlanForm({ initialData }: GymPlanFormProps) {
                 </div>
                  <FormItem>
                     <Label htmlFor={`exercises.${index}.day`}>Workout Day (Opt.)</Label>
-                    <Input id={`exercises.${index}.day`} {...form.register(`exercises.${index}.day`)} placeholder="e.g., Push Day, Monday" className="input-animated"/>
+                    <Input id={`exercises.${index}.day`} {...form.register(`exercises.${index}.day`)} placeholder="e.g., Push Day, Monday, Day 1" className="input-animated"/>
+                     {form.formState.errors.exercises?.[index]?.day && <p className="text-sm text-destructive mt-1">{form.formState.errors.exercises?.[index]?.day?.message}</p>}
                   </FormItem>
                 <FormItem>
                   <Label htmlFor={`exercises.${index}.imageUrl`} className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-primary"/>Image URL (Optional)</Label>
@@ -247,6 +307,10 @@ export function GymPlanForm({ initialData }: GymPlanFormProps) {
             </Button>
              {form.formState.errors.exercises?.root?.message && <p className="text-sm text-destructive mt-1">{form.formState.errors.exercises?.root?.message}</p>}
              {typeof form.formState.errors.exercises === 'string' && <p className="text-sm text-destructive mt-1">{form.formState.errors.exercises}</p>}
+             {form.formState.errors.exercises && !Array.isArray(form.formState.errors.exercises) && typeof form.formState.errors.exercises !== 'string' && !form.formState.errors.exercises?.root && (
+                <p className="text-sm text-destructive mt-1">Please check exercise details for errors.</p>
+             )}
+
 
           </div>
           

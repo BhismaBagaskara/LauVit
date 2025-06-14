@@ -6,8 +6,10 @@ import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { GymPlanForm } from "@/components/plans/GymPlanForm";
 import { ListChecks, Loader2 } from "lucide-react";
-// import { MOCK_GYM_PLANS_DATA } from "@/lib/constants"; // Mock data removed
 import type { GymPlan } from "@/lib/types";
+import { APP_NAME } from "@/lib/constants";
+import { Button } from "@/components/ui/button";
+
 
 export default function EditGymPlanPage() {
   const params = useParams();
@@ -17,20 +19,25 @@ export default function EditGymPlanPage() {
   const planId = params.id as string;
 
   useEffect(() => {
-    if (planId) {
-      // Simulate fetching plan data - In a real app, this would be an API call
-      // For now, as MOCK_GYM_PLANS_DATA is empty, this will result in plan not found
-      const foundPlan = undefined; // MOCK_GYM_PLANS_DATA.find(p => p.id === planId); 
-      if (foundPlan) {
-        setPlan(foundPlan);
-      } else {
-        // Handle plan not found, e.g., redirect or show error
-        // console.warn("Plan not found, redirecting..."); // Keep or remove console log as preferred
-        // router.push("/gym-plans"); 
+    if (planId && typeof window !== 'undefined') {
+      const storedPlans = localStorage.getItem(`${APP_NAME}_gymPlans`);
+      if (storedPlans) {
+        const plans: GymPlan[] = JSON.parse(storedPlans);
+        const foundPlan = plans.find(p => p.id === planId);
+        if (foundPlan) {
+          setPlan(foundPlan);
+        } else {
+          // console.warn("Plan not found, consider redirecting or showing error");
+          // router.push("/gym-plans"); // Optional: redirect if plan not found
+        }
       }
       setLoading(false);
+    } else if (!planId) {
+        setLoading(false); // No planId, stop loading
     }
+    // Add dependency for typeof window !== 'undefined' check indirectly
   }, [planId, router]);
+
 
   if (loading) {
     return (
@@ -41,7 +48,6 @@ export default function EditGymPlanPage() {
   }
 
   if (!plan) {
-    // This case should ideally be handled by the redirect in useEffect
     return (
         <div className="space-y-8 text-center">
          <PageHeader

@@ -14,16 +14,17 @@ import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
-// import { MOCK_EXERCISES_DATA } from "@/lib/constants"; // Mock data removed
-import type { LoggedExercise, WorkoutSet } from "@/lib/types";
+import type { LoggedExercise, WorkoutSet, GymPlan, Exercise as PlanExercise } from "@/lib/types";
+import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
 
 const workoutSetSchema = z.object({
-  reps: z.coerce.number().min(0, "Reps must be positive"),
-  weight: z.coerce.number().min(0, "Weight must be positive"),
+  reps: z.coerce.number().min(0, "Reps must be a non-negative number"),
+  weight: z.coerce.number().min(0, "Weight must be a non-negative number"),
 });
 
 const loggedExerciseSchema = z.object({
+  exerciseId: z.string().optional(), // Store ID from plan if available
   exerciseName: z.string().min(1, "Exercise name is required"),
   variations: z.string().optional(),
   sets: z.array(workoutSetSchema).min(1, "Add at least one set"),
@@ -42,12 +43,33 @@ type WorkoutSessionFormValues = z.infer<typeof workoutSessionSchema>;
 export default function LogWorkoutPage() {
   const { toast } = useToast();
   const [availableExercises, setAvailableExercises] = useState<{label: string, value: string}[]>([]);
+  const [gymPlans, setGymPlans] = useState<GymPlan[]>([]);
+  const [activePlan, setActivePlan] = useState<GymPlan | null>(null);
+  const [workoutDayOptions, setWorkoutDayOptions] = useState<{ label: string; value: string }[]>([]);
 
-  // useEffect(() => {
-    // Simulate fetching user's exercises (from plans + custom)
+  useEffect(() => {
+    // Load gym plans from localStorage
+    if (typeof window !== 'undefined') {
+      const storedPlans = localStorage.getItem(`${APP_NAME}_gymPlans`);
+      if (storedPlans) {
+        const parsedPlans: GymPlan[] = JSON.parse(storedPlans);
+        setGymPlans(parsedPlans);
+        const currentActivePlan = parsedPlans.find(p => p.isActive) || null;
+        setActivePlan(currentActivePlan);
+
+        if (currentActivePlan) {
+          const uniqueDays = Array.from(new Set(currentActivePlan.exercises.map(ex => ex.day).filter(Boolean as (value: any) => value is string)));
+          setWorkoutDayOptions(uniqueDays.map(day => ({ label: day, value: day })));
+        } else {
+          setWorkoutDayOptions([]);
+        }
+      }
+    }
+     // Simulate fetching user's custom exercises (if any) or general exercise list
+    // For now, it remains empty as MOCK_EXERCISES_DATA is empty.
     // const exerciseOptions = MOCK_EXERCISES_DATA.map(ex => ({label: `${ex.name} ${ex.variations ? `(${ex.variations})` : ''}`, value: ex.id}));
     // setAvailableExercises(exerciseOptions);
-  // }, []);
+  }, []);
 
   const form = useForm<WorkoutSessionFormValues>({
     resolver: zodResolver(workoutSessionSchema),
@@ -64,11 +86,68 @@ export default function LogWorkoutPage() {
 
   const onSubmit = (data: WorkoutSessionFormValues) => {
     console.log("Workout Logged:", data);
+    // Here you would typically save the data to localStorage or a backend
+    // For now, we'll just show a toast and reset the form.
+    const workoutHistoryKey = `${APP_NAME}_workoutHistory`;
+    let history: WorkoutSessionFormValues[] = [];
+    if (typeof window !== 'undefined') {
+        const storedHistory = localStorage.getItem(workoutHistoryKey);
+        if (storedHistory) {
+            history = JSON.parse(storedHistory);
+        }
+    }
+    // Add new session with an ID (for future editing/deleting)
+    const newSession = { ...data, id: `sess_${Date.now()}` };
+    history.push(newSession);
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(workoutHistoryKey, JSON.stringify(history));
+    }
+
     toast({
       title: "Workout Logged!",
-      description: `Session for ${data.workoutDay || 'General Workout'} on ${data.date.toLocaleDateString()} saved.`,
+      description: `Session for ${data.workoutDay || 'General Workout'} on ${formatDate(data.date)} saved.`,
     });
-    form.reset();
+    form.reset({
+      date: new Date(),
+      workoutDay: "",
+      loggedExercises: [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }],
+      notes: "",
+    });
+    // Reset workout day options if needed, or re-evaluate active plan
+    if (activePlan) {
+        const uniqueDays = Array.from(new Set(activePlan.exercises.map(ex => ex.day).filter(Boolean as (value: any) => value is string)));
+        setWorkoutDayOptions(uniqueDays.map(day => ({ label: day, value: day })));
+    } else {
+        setWorkoutDayOptions([]);
+    }
+  };
+
+  const formatDate = (date: Date): string => {
+    try {
+        return new Intl.DateTimeFormat('en-US', { dateStyle: 'long' }).format(date);
+    } catch (e) {
+        return date.toLocaleDateString();
+    }
+  };
+
+  const handleWorkoutDayChange = (selectedDayValue: string) => {
+    // form.setValue("workoutDay", selectedDayValue); // This is handled by Controller's field.onChange
+
+    if (activePlan && selectedDayValue) {
+      const exercisesForDay: PlanExercise[] = activePlan.exercises.filter(ex => ex.day === selectedDayValue);
+      
+      const newLoggedExercises: LoggedExercise[] = exercisesForDay.map(planExercise => ({
+        exerciseId: planExercise.id,
+        exerciseName: planExercise.name,
+        variations: planExercise.variations || "",
+        sets: Array.from({ length: planExercise.sets || 1 }, () => ({ reps: 0, weight: 0 })),
+        notes: `Target: ${planExercise.sets} sets of ${planExercise.reps}. ${planExercise.instructions ? `Instructions: ${planExercise.instructions.substring(0,50)}...` : ''}`,
+      }));
+      
+      form.setValue("loggedExercises", newLoggedExercises.length > 0 ? newLoggedExercises : [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }]);
+    } else {
+      form.setValue("loggedExercises", [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }]);
+    }
   };
 
   const addExercise = () => {
@@ -115,10 +194,42 @@ export default function LogWorkoutPage() {
                   </FormItem>
                 )}
               />
-              <FormItem>
-                <Label className="flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Workout Day (Optional)</Label>
-                <Input placeholder="e.g., Push Day, Leg Day" {...form.register("workoutDay")} className="input-animated" />
-              </FormItem>
+              <Controller
+                control={form.control}
+                name="workoutDay"
+                render={({ field }) => (
+                    <FormItem>
+                    <Label className="flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Workout Day</Label>
+                    <Select
+                        onValueChange={(value) => {
+                        field.onChange(value);
+                        handleWorkoutDayChange(value);
+                        }}
+                        value={field.value || ""}
+                        disabled={!activePlan || workoutDayOptions.length === 0}
+                    >
+                        <SelectTrigger className="input-animated">
+                        <SelectValue placeholder="Select day from active plan or leave blank" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        <SelectItem value="">General Workout (No Plan Day)</SelectItem>
+                        {activePlan && workoutDayOptions.length > 0 ? (
+                            workoutDayOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                            </SelectItem>
+                            ))
+                        ) : (
+                           null // Placeholder is handled by SelectValue if no options and no active plan
+                        )}
+                        </SelectContent>
+                    </Select>
+                    {!activePlan && <p className="text-xs text-muted-foreground mt-1">No active gym plan to select workout days from.</p>}
+                    {activePlan && workoutDayOptions.length === 0 && <p className="text-xs text-muted-foreground mt-1">Active plan has no defined workout days.</p>}
+                    {form.formState.errors.workoutDay && <p className="text-sm text-destructive mt-1">{form.formState.errors.workoutDay.message}</p>}
+                    </FormItem>
+                )}
+                />
             </div>
 
             {fields.map((field, exerciseIndex) => (
@@ -140,29 +251,38 @@ export default function LogWorkoutPage() {
                         name={`loggedExercises.${exerciseIndex}.exerciseName`}
                         control={form.control}
                         render={({ field: selectField }) => (
-                          <Select onValueChange={(value) => {
-                            if (value === 'custom') {
-                              // Potentially open a dialog to add custom exercise or navigate
-                              // For now, allow typing directly or clear field
-                              selectField.onChange(''); // Clear or handle custom input
-                            } else {
-                              selectField.onChange(value);
-                            }
-                          }} defaultValue={selectField.value}>
+                          <Select 
+                            onValueChange={(value) => {
+                                if (value === 'custom') {
+                                    selectField.onChange(''); 
+                                    // TODO: Implement dialog for custom exercise input if needed
+                                    toast({title: "Custom Exercise", description: "Type the name of your custom exercise."})
+                                } else {
+                                    selectField.onChange(value);
+                                }
+                            }} 
+                            value={selectField.value}
+                           >
                             <SelectTrigger className="input-animated">
+                              {/* Display selected value, or allow typing if it's also an input */}
                               <SelectValue placeholder="Select or type exercise" />
                             </SelectTrigger>
                             <SelectContent>
+                              {/* Populate with actual available exercises if MOCK_EXERCISES_DATA is replaced */}
                               {availableExercises.map(ex => (
                                 <SelectItem key={ex.value} value={ex.label}>{ex.label}</SelectItem>
                               ))}
-                               <SelectItem value="custom">Add Custom Exercise...</SelectItem> 
+                               <SelectItem value="custom">Type Custom Exercise Name...</SelectItem> 
                             </SelectContent>
                           </Select>
                         )}
                       />
-                     {/* Fallback to Input if select doesn't cover direct typing well, or enhance Select for creatable options */}
-                     {/* <Input placeholder="Type exercise name" {...form.register(`loggedExercises.${exerciseIndex}.exerciseName`)} className="input-animated mt-1" /> */}
+                     {/* Fallback Input for direct typing, used if Select is for choosing from a list only */}
+                     <Input 
+                        placeholder="Type or confirm exercise name" 
+                        {...form.register(`loggedExercises.${exerciseIndex}.exerciseName`)} 
+                        className="input-animated mt-1" 
+                      />
                     {form.formState.errors.loggedExercises?.[exerciseIndex]?.exerciseName && (
                       <p className="text-sm text-destructive mt-1">{form.formState.errors.loggedExercises?.[exerciseIndex]?.exerciseName?.message}</p>
                     )}
@@ -185,6 +305,7 @@ export default function LogWorkoutPage() {
                       />
                       <Input
                         type="number"
+                        step="0.01"
                         placeholder="Weight (kg)"
                         {...form.register(`loggedExercises.${exerciseIndex}.sets.${setIndex}.weight`)}
                         className="input-animated w-1/3"
@@ -201,11 +322,14 @@ export default function LogWorkoutPage() {
                    {form.formState.errors.loggedExercises?.[exerciseIndex]?.sets?.message && (
                       <p className="text-sm text-destructive mt-1">{form.formState.errors.loggedExercises?.[exerciseIndex]?.sets?.message}</p>
                     )}
+                     {form.formState.errors.loggedExercises?.[exerciseIndex]?.sets?.root?.message && (
+                      <p className="text-sm text-destructive mt-1">{form.formState.errors.loggedExercises?.[exerciseIndex]?.sets?.root?.message}</p>
+                    )}
                 </div>
 
                 <FormItem>
-                  <Label>Notes (Optional)</Label>
-                  <Textarea placeholder="e.g., Felt strong, focus on form" {...form.register(`loggedExercises.${exerciseIndex}.notes`)} className="input-animated" />
+                  <Label>Exercise Notes (Optional)</Label>
+                  <Textarea placeholder="e.g., Target: 3 sets of 8-12 reps. Felt strong, focus on form" {...form.register(`loggedExercises.${exerciseIndex}.notes`)} className="input-animated" />
                 </FormItem>
               </GlassCard>
             ))}
@@ -223,8 +347,11 @@ export default function LogWorkoutPage() {
               {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Save Workout
             </Button>
-            {form.formState.errors.loggedExercises?.message && (
-                <p className="text-sm text-destructive mt-1">{form.formState.errors.loggedExercises?.message}</p>
+            {form.formState.errors.loggedExercises?.root?.message && (
+                <p className="text-sm text-destructive mt-1">{form.formState.errors.loggedExercises?.root?.message}</p>
+            )}
+             {typeof form.formState.errors.loggedExercises === 'string' && (
+                <p className="text-sm text-destructive mt-1">{form.formState.errors.loggedExercises}</p>
             )}
           </form>
         </GlassCardContent>
@@ -236,3 +363,4 @@ export default function LogWorkoutPage() {
 export function FormItem({children, className}: {children: React.ReactNode, className?: string}) {
   return <div className={`space-y-1.5 ${className}`}>{children}</div>;
 }
+

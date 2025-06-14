@@ -8,9 +8,9 @@ import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, Glass
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ListChecks, PlusCircle, Edit3, Trash2, CheckCircle, XCircle, PlayCircle } from "lucide-react";
-// import { MOCK_GYM_PLANS_DATA } from "@/lib/constants"; // Mock data removed
 import type { GymPlan } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { APP_NAME } from "@/lib/constants";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,23 +27,34 @@ export default function GymPlansPage() {
   const [plans, setPlans] = useState<GymPlan[]>([]);
   const { toast } = useToast();
 
-  // useEffect(() => {
-    // Simulate fetching plans - In a real app, this would be an API call
-    // setPlans(MOCK_GYM_PLANS_DATA);
-  // }, []);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedPlans = localStorage.getItem(`${APP_NAME}_gymPlans`);
+      if (storedPlans) {
+        setPlans(JSON.parse(storedPlans));
+      }
+    }
+  }, []);
+
+  const savePlansToLocalStorage = (updatedPlans: GymPlan[]) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`${APP_NAME}_gymPlans`, JSON.stringify(updatedPlans));
+    }
+  };
 
   const handleDeletePlan = (planId: string) => {
-    // Simulate deleting a plan
-    setPlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
+    const updatedPlans = plans.filter(plan => plan.id !== planId);
+    setPlans(updatedPlans);
+    savePlansToLocalStorage(updatedPlans);
     toast({ title: "Plan Deleted", description: "The gym plan has been successfully deleted." });
   };
   
   const handleActivatePlan = (planId: string) => {
-    setPlans(prevPlans => 
-      prevPlans.map(plan => 
-        plan.id === planId ? {...plan, isActive: true} : {...plan, isActive: false}
-      )
+    const updatedPlans = plans.map(plan => 
+      plan.id === planId ? {...plan, isActive: true} : {...plan, isActive: false}
     );
+    setPlans(updatedPlans);
+    savePlansToLocalStorage(updatedPlans);
     toast({ title: "Plan Activated", description: "The gym plan is now active." });
   };
 
@@ -80,6 +91,9 @@ export default function GymPlansPage() {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Last updated: {new Date(plan.updatedAt).toLocaleDateString()}
+                </p>
+                 <p className="text-xs text-muted-foreground mt-1">
+                  Days: {Array.from(new Set(plan.exercises.map(e => e.day).filter(Boolean))).join(', ') || 'N/A'}
                 </p>
               </GlassCardContent>
               <GlassCardFooter className="flex flex-col sm:flex-row gap-2">

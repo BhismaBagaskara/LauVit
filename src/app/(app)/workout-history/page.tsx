@@ -5,11 +5,10 @@ import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, GlassCardContent } from "@/components/shared/GlassCard";
 import { History, CalendarDays, ListOrdered, Edit3, Trash2 } from "lucide-react";
-// import { MOCK_WORKOUT_LOGS_DATA } from "@/lib/constants"; // Mock data removed
-import type { WorkoutSession, LoggedExercise, WorkoutSet } from "@/lib/types";
-import { format } from "date-fns";
+import type { WorkoutSession } from "@/lib/types"; // WorkoutSession might need an ID
+import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import Link from "next/link"; // If edit functionality is re-added
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,18 +22,45 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
+// Ensure WorkoutSession has an 'id' for key and deletion
+interface WorkoutSessionWithId extends WorkoutSession {
+    id: string; // or number, whatever is generated
+}
+
+
 export default function WorkoutHistoryPage() {
-  const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
+  const [workoutSessions, setWorkoutSessions] = useState<WorkoutSessionWithId[]>([]);
   const { toast } = useToast();
 
-  // useEffect(() => {
-    // In a real app, fetch this data from localStorage or a backend
-    // setWorkoutSessions(MOCK_WORKOUT_LOGS_DATA);
-  // }, []);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedHistory = localStorage.getItem(`${APP_NAME}_workoutHistory`);
+      if (storedHistory) {
+        // Parse and ensure dates are Date objects
+        const parsedSessions: WorkoutSessionWithId[] = JSON.parse(storedHistory).map((session: any) => ({
+            ...session,
+            date: new Date(session.date) 
+        }));
+        setWorkoutSessions(parsedSessions);
+      }
+    }
+  }, []);
+
+  const formatDate = (date: Date): string => {
+    try {
+        return new Intl.DateTimeFormat('en-US', { dateStyle: 'long' }).format(date);
+    } catch (e) {
+        // Fallback for environments where Intl might not be fully supported or date is invalid
+        return date instanceof Date && !isNaN(date.valueOf()) ? date.toLocaleDateString() : "Invalid Date";
+    }
+  };
 
   const handleDeleteSession = (sessionId: string) => {
-    // Simulate deleting a session - In a real app, update localStorage or call backend
-    setWorkoutSessions(prevSessions => prevSessions.filter(session => session.id !== sessionId));
+    const updatedSessions = workoutSessions.filter(session => session.id !== sessionId);
+    setWorkoutSessions(updatedSessions);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`${APP_NAME}_workoutHistory`, JSON.stringify(updatedSessions));
+    }
     toast({ title: "Session Deleted", description: "The workout session has been removed from your history." });
   };
 
@@ -57,7 +83,7 @@ export default function WorkoutHistoryPage() {
                   </GlassCardTitle>
                   <span className="text-xs text-muted-foreground flex items-center">
                     <CalendarDays className="mr-1 h-3 w-3" />
-                    {format(new Date(session.date), "PPP")}
+                    {formatDate(session.date)}
                   </span>
                 </div>
                 {session.notes && <GlassCardDescription>Catatan Sesi: {session.notes}</GlassCardDescription>}
@@ -95,7 +121,7 @@ export default function WorkoutHistoryPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Tindakan ini akan menghapus sesi latihan pada tanggal {format(new Date(session.date), "PPP")} secara permanen.
+                        Tindakan ini akan menghapus sesi latihan pada tanggal {formatDate(session.date)} secara permanen.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
