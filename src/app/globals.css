@@ -47,17 +47,17 @@ body {
 
   .dark {
     --background: 0 0% 8%; /* Very Dark Gray/Almost Black */
-    --foreground: 0 0% 98%; /* White */
+    --foreground: 0 0% 100%; /* Pure White */
     --card: 0 0% 12%; /* Dark Gray for panels - #1F1F1F */
-    --card-foreground: 0 0% 95%;
+    --card-foreground: 0 0% 100%; /* Pure White */
     --popover: 0 0% 10%; /* Slightly darker for popovers */
-    --popover-foreground: 0 0% 95%;
+    --popover-foreground: 0 0% 100%; /* Pure White */
     --primary: 30 100% 50%; /* Vibrant Orange */
     --primary-foreground: 30 100% 10%; /* Dark Orange/Brown for text on primary */
     --secondary: 0 0% 15%; /* Slightly lighter dark gray */
-    --secondary-foreground: 0 0% 90%;
+    --secondary-foreground: 0 0% 100%; /* Pure White */
     --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted-foreground: 0 0% 100%; /* Pure White */
     --accent: 30 90% 60%; /* Slightly Lighter/Softer Orange */
     --accent-foreground: 30 90% 10%; /* Dark Orange/Brown for text on accent */
     --destructive: 30 100% 50%; /* Vibrant Orange */
@@ -73,11 +73,11 @@ body {
     --chart-5: 340 75% 55%;
 
     --sidebar-background: 0 0% 10%; /* Dark sidebar background */
-    --sidebar-foreground: 0 0% 80%; /* Light gray text for sidebar */
+    --sidebar-foreground: 0 0% 100%; /* Pure White */
     --sidebar-primary: 30 100% 50%; /* Vibrant Orange for active/hover */
     --sidebar-primary-foreground: 30 100% 10%; /* Dark text on vibrant orange */
     --sidebar-accent: 0 0% 15%; /* Hover bg for sidebar items */
-    --sidebar-accent-foreground: 0 0% 95%; /* Text color on hover */
+    --sidebar-accent-foreground: 0 0% 100%; /* Pure White */
     --sidebar-border: 0 0% 20%;
     --sidebar-ring: 30 100% 50%; /* Vibrant Orange for sidebar ring */
   }
