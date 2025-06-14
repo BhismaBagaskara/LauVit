@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { LoggedExercise, WorkoutSet, GymPlan, Exercise as PlanExercise } from "@/lib/types";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
+import { format } from "date-fns"; // Added for formatDate usage
 
 const workoutSetSchema = z.object({
   reps: z.coerce.number().min(0, "Reps must be a non-negative number"),
@@ -40,6 +41,8 @@ const workoutSessionSchema = z.object({
 
 type WorkoutSessionFormValues = z.infer<typeof workoutSessionSchema>;
 
+const GENERAL_WORKOUT_VALUE = "_general_";
+
 export default function LogWorkoutPage() {
   const { toast } = useToast();
   const [availableExercises, setAvailableExercises] = useState<{label: string, value: string}[]>([]);
@@ -48,7 +51,6 @@ export default function LogWorkoutPage() {
   const [workoutDayOptions, setWorkoutDayOptions] = useState<{ label: string; value: string }[]>([]);
 
   useEffect(() => {
-    // Load gym plans from localStorage
     if (typeof window !== 'undefined') {
       const storedPlans = localStorage.getItem(`${APP_NAME}_gymPlans`);
       if (storedPlans) {
@@ -65,16 +67,13 @@ export default function LogWorkoutPage() {
         }
       }
     }
-     // Simulate fetching user's custom exercises (if any) or general exercise list
-    // For now, it remains empty as MOCK_EXERCISES_DATA is empty.
-    // const exerciseOptions = MOCK_EXERCISES_DATA.map(ex => ({label: `${ex.name} ${ex.variations ? `(${ex.variations})` : ''}`, value: ex.id}));
-    // setAvailableExercises(exerciseOptions);
   }, []);
 
   const form = useForm<WorkoutSessionFormValues>({
     resolver: zodResolver(workoutSessionSchema),
     defaultValues: {
       date: new Date(),
+      workoutDay: undefined, // Default to undefined to show placeholder
       loggedExercises: [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }],
     },
   });
@@ -86,8 +85,6 @@ export default function LogWorkoutPage() {
 
   const onSubmit = (data: WorkoutSessionFormValues) => {
     console.log("Workout Logged:", data);
-    // Here you would typically save the data to localStorage or a backend
-    // For now, we'll just show a toast and reset the form.
     const workoutHistoryKey = `${APP_NAME}_workoutHistory`;
     let history: WorkoutSessionFormValues[] = [];
     if (typeof window !== 'undefined') {
@@ -96,7 +93,6 @@ export default function LogWorkoutPage() {
             history = JSON.parse(storedHistory);
         }
     }
-    // Add new session with an ID (for future editing/deleting)
     const newSession = { ...data, id: `sess_${Date.now()}` };
     history.push(newSession);
     if (typeof window !== 'undefined') {
@@ -105,15 +101,14 @@ export default function LogWorkoutPage() {
 
     toast({
       title: "Workout Logged!",
-      description: `Session for ${data.workoutDay || 'General Workout'} on ${formatDate(data.date)} saved.`,
+      description: `Session for ${data.workoutDay === GENERAL_WORKOUT_VALUE || !data.workoutDay ? 'General Workout' : data.workoutDay} on ${formatDate(data.date)} saved.`,
     });
     form.reset({
       date: new Date(),
-      workoutDay: "",
+      workoutDay: undefined, // Reset to undefined
       loggedExercises: [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }],
       notes: "",
     });
-    // Reset workout day options if needed, or re-evaluate active plan
     if (activePlan) {
         const uniqueDays = Array.from(new Set(activePlan.exercises.map(ex => ex.day).filter(Boolean as (value: any) => value is string)));
         setWorkoutDayOptions(uniqueDays.map(day => ({ label: day, value: day })));
@@ -131,9 +126,7 @@ export default function LogWorkoutPage() {
   };
 
   const handleWorkoutDayChange = (selectedDayValue: string) => {
-    // form.setValue("workoutDay", selectedDayValue); // This is handled by Controller's field.onChange
-
-    if (activePlan && selectedDayValue) {
+    if (activePlan && selectedDayValue && selectedDayValue !== GENERAL_WORKOUT_VALUE) {
       const exercisesForDay: PlanExercise[] = activePlan.exercises.filter(ex => ex.day === selectedDayValue);
       
       const newLoggedExercises: LoggedExercise[] = exercisesForDay.map(planExercise => ({
@@ -145,7 +138,7 @@ export default function LogWorkoutPage() {
       }));
       
       form.setValue("loggedExercises", newLoggedExercises.length > 0 ? newLoggedExercises : [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }]);
-    } else {
+    } else { // Handles GENERAL_WORKOUT_VALUE (passed as "" here) or no active plan
       form.setValue("loggedExercises", [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }]);
     }
   };
@@ -201,27 +194,26 @@ export default function LogWorkoutPage() {
                     <FormItem>
                     <Label className="flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Workout Day</Label>
                     <Select
-                        onValueChange={(value) => {
-                        field.onChange(value);
-                        handleWorkoutDayChange(value);
+                        onValueChange={(value) => { // value is the selected SelectItem's value prop
+                          field.onChange(value); // Update form state with "_general_" or actual day name
+                          // For exercise loading, treat "_general_" as "no specific day from plan" (empty string)
+                          handleWorkoutDayChange(value === GENERAL_WORKOUT_VALUE ? "" : value);
                         }}
-                        value={field.value || ""}
+                        value={field.value} // Controlled by form state (undefined, "_general_", or day name)
                         disabled={!activePlan || workoutDayOptions.length === 0}
                     >
                         <SelectTrigger className="input-animated">
-                        <SelectValue placeholder="Select day from active plan or leave blank" />
+                          <SelectValue placeholder="Select day from active plan or leave blank" />
                         </SelectTrigger>
                         <SelectContent>
-                        <SelectItem value="">General Workout (No Plan Day)</SelectItem>
-                        {activePlan && workoutDayOptions.length > 0 ? (
+                          <SelectItem value={GENERAL_WORKOUT_VALUE}>General Workout (No Plan Day)</SelectItem>
+                          {activePlan && workoutDayOptions.length > 0 &&
                             workoutDayOptions.map(option => (
                             <SelectItem key={option.value} value={option.value}>
                                 {option.label}
                             </SelectItem>
                             ))
-                        ) : (
-                           null // Placeholder is handled by SelectValue if no options and no active plan
-                        )}
+                          }
                         </SelectContent>
                     </Select>
                     {!activePlan && <p className="text-xs text-muted-foreground mt-1">No active gym plan to select workout days from.</p>}
@@ -255,7 +247,6 @@ export default function LogWorkoutPage() {
                             onValueChange={(value) => {
                                 if (value === 'custom') {
                                     selectField.onChange(''); 
-                                    // TODO: Implement dialog for custom exercise input if needed
                                     toast({title: "Custom Exercise", description: "Type the name of your custom exercise."})
                                 } else {
                                     selectField.onChange(value);
@@ -264,11 +255,9 @@ export default function LogWorkoutPage() {
                             value={selectField.value}
                            >
                             <SelectTrigger className="input-animated">
-                              {/* Display selected value, or allow typing if it's also an input */}
                               <SelectValue placeholder="Select or type exercise" />
                             </SelectTrigger>
                             <SelectContent>
-                              {/* Populate with actual available exercises if MOCK_EXERCISES_DATA is replaced */}
                               {availableExercises.map(ex => (
                                 <SelectItem key={ex.value} value={ex.label}>{ex.label}</SelectItem>
                               ))}
@@ -277,7 +266,6 @@ export default function LogWorkoutPage() {
                           </Select>
                         )}
                       />
-                     {/* Fallback Input for direct typing, used if Select is for choosing from a list only */}
                      <Input 
                         placeholder="Type or confirm exercise name" 
                         {...form.register(`loggedExercises.${exerciseIndex}.exerciseName`)} 
