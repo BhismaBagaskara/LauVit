@@ -1,7 +1,8 @@
+
 "use client";
 
 import { PageHeader } from "@/components/shared/PageHeader";
-import { LayoutDashboard, Target, CalendarDays, BarChart, TrendingUp, Sparkles } from "lucide-react";
+import { LayoutDashboard, Target, CalendarDays, BarChart, TrendingUp, Sparkles, Dumbbell } from "lucide-react";
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, GlassCardContent } from "@/components/shared/GlassCard";
 import { Calendar } from "@/components/ui/calendar";
 import { MOCK_PERSONAL_RECORDS_DATA, MOCK_WORKOUT_LOGS_DATA } from "@/lib/constants";
