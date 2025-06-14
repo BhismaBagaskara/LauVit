@@ -52,19 +52,19 @@ body {
     --card-foreground: 0 0% 95%;
     --popover: 0 0% 10%; /* Slightly darker for popovers */
     --popover-foreground: 0 0% 95%;
-    --primary: 183 100% 74.5%; /* Electric Blue */
-    --primary-foreground: 183 100% 10%; /* Dark Blue/Black for text on primary */
+    --primary: 30 100% 50%; /* Vibrant Orange */
+    --primary-foreground: 30 100% 10%; /* Dark Orange/Brown for text on primary */
     --secondary: 0 0% 15%; /* Slightly lighter dark gray */
     --secondary-foreground: 0 0% 90%;
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 60%;
-    --accent: 183 80% 65%; /* Alternate Electric Blue shade */
-    --accent-foreground: 183 100% 10%;
+    --accent: 30 90% 60%; /* Slightly Lighter/Softer Orange */
+    --accent-foreground: 30 90% 10%; /* Dark Orange/Brown for text on accent */
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 20%; /* Border for cards, inputs */
     --input: 0 0% 18%; /* Input background */
-    --ring: 183 100% 74.5%; /* Electric Blue for focus rings */
+    --ring: 30 100% 50%; /* Vibrant Orange for focus rings */
     
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -74,12 +74,12 @@ body {
 
     --sidebar-background: 0 0% 10%; /* Dark sidebar background */
     --sidebar-foreground: 0 0% 80%; /* Light gray text for sidebar */
-    --sidebar-primary: 183 100% 74.5%; /* Electric blue for active/hover */
-    --sidebar-primary-foreground: 183 100% 10%; /* Dark text on electric blue */
+    --sidebar-primary: 30 100% 50%; /* Vibrant Orange for active/hover */
+    --sidebar-primary-foreground: 30 100% 10%; /* Dark text on vibrant orange */
     --sidebar-accent: 0 0% 15%; /* Hover bg for sidebar items */
     --sidebar-accent-foreground: 0 0% 95%; /* Text color on hover */
     --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 183 100% 74.5%;
+    --sidebar-ring: 30 100% 50%; /* Vibrant Orange for sidebar ring */
   }
 }
 
