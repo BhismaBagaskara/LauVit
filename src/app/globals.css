@@ -14,19 +14,19 @@ body {
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 30 100% 50%; /* Vibrant Orange */
+    --primary-foreground: 30 100% 10%; /* Dark Orange/Brown for text on primary */
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
     --accent: 240 4.8% 95.9%;
     --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 30 100% 50%; /* Vibrant Orange */
+    --destructive-foreground: 30 100% 10%; /* Dark Orange/Brown for text on destructive */
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
+    --ring: 30 100% 50%; /* Vibrant Orange for focus rings */
     --radius: 0.5rem;
 
     --chart-1: 12 76% 61%;
@@ -37,12 +37,12 @@ body {
 
     --sidebar-background: 0 0% 98%; /* Light mode sidebar */
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-primary: 30 100% 50%; /* Vibrant Orange for active/hover */
+    --sidebar-primary-foreground: 30 100% 10%; /* Dark text on vibrant orange */
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 30 100% 50%; /* Vibrant Orange for sidebar ring */
   }
 
   .dark {
@@ -60,8 +60,8 @@ body {
     --muted-foreground: 0 0% 60%;
     --accent: 30 90% 60%; /* Slightly Lighter/Softer Orange */
     --accent-foreground: 30 90% 10%; /* Dark Orange/Brown for text on accent */
-    --destructive: 30 100% 50%; /* Changed to Vibrant Orange */
-    --destructive-foreground: 30 100% 10%; /* Changed to Dark Orange/Brown */
+    --destructive: 30 100% 50%; /* Vibrant Orange */
+    --destructive-foreground: 30 100% 10%; /* Dark Orange/Brown for text on destructive */
     --border: 0 0% 20%; /* Border for cards, inputs */
     --input: 0 0% 18%; /* Input background */
     --ring: 30 100% 50%; /* Vibrant Orange for focus rings */
