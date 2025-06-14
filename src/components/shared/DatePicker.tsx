@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -27,11 +28,12 @@ export function DatePicker({ date, setDate, className }: DatePickerProps) {
           variant={"outline"}
           className={cn(
             "w-full justify-start text-left font-normal input-animated",
-            !date && "text-muted-foreground",
+            // Apply text-primary if date is selected, otherwise text-muted-foreground
+            date ? "text-primary" : "text-muted-foreground",
             className
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          <CalendarIcon className="mr-2 h-4 w-4" /> {/* Icon will inherit color from button text */}
           {date ? format(date, "PPP") : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
