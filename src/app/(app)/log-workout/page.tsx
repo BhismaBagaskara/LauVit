@@ -1,19 +1,20 @@
+
 "use client";
 
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Dumbbell, CalendarPlus, StickyNote, PlusCircle, Trash2, Save } from "lucide-react";
+import { Dumbbell, CalendarPlus, StickyNote, PlusCircle, Trash2, Save, Loader2 } from "lucide-react";
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/shared/DatePicker"; // Assuming a DatePicker component exists
+import { DatePicker } from "@/components/shared/DatePicker"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { MOCK_EXERCISES_DATA } from "@/lib/constants"; // For exercise suggestions
+// import { MOCK_EXERCISES_DATA } from "@/lib/constants"; // Mock data removed
 import type { LoggedExercise, WorkoutSet } from "@/lib/types";
 import { useEffect, useState } from "react";
 
@@ -42,11 +43,11 @@ export default function LogWorkoutPage() {
   const { toast } = useToast();
   const [availableExercises, setAvailableExercises] = useState<{label: string, value: string}[]>([]);
 
-  useEffect(() => {
+  // useEffect(() => {
     // Simulate fetching user's exercises (from plans + custom)
-    const exerciseOptions = MOCK_EXERCISES_DATA.map(ex => ({label: `${ex.name} ${ex.variations ? `(${ex.variations})` : ''}`, value: ex.id}));
-    setAvailableExercises(exerciseOptions);
-  }, []);
+    // const exerciseOptions = MOCK_EXERCISES_DATA.map(ex => ({label: `${ex.name} ${ex.variations ? `(${ex.variations})` : ''}`, value: ex.id}));
+    // setAvailableExercises(exerciseOptions);
+  // }, []);
 
   const form = useForm<WorkoutSessionFormValues>({
     resolver: zodResolver(workoutSessionSchema),
@@ -139,7 +140,15 @@ export default function LogWorkoutPage() {
                         name={`loggedExercises.${exerciseIndex}.exerciseName`}
                         control={form.control}
                         render={({ field: selectField }) => (
-                          <Select onValueChange={selectField.onChange} defaultValue={selectField.value}>
+                          <Select onValueChange={(value) => {
+                            if (value === 'custom') {
+                              // Potentially open a dialog to add custom exercise or navigate
+                              // For now, allow typing directly or clear field
+                              selectField.onChange(''); // Clear or handle custom input
+                            } else {
+                              selectField.onChange(value);
+                            }
+                          }} defaultValue={selectField.value}>
                             <SelectTrigger className="input-animated">
                               <SelectValue placeholder="Select or type exercise" />
                             </SelectTrigger>
@@ -152,6 +161,8 @@ export default function LogWorkoutPage() {
                           </Select>
                         )}
                       />
+                     {/* Fallback to Input if select doesn't cover direct typing well, or enhance Select for creatable options */}
+                     {/* <Input placeholder="Type exercise name" {...form.register(`loggedExercises.${exerciseIndex}.exerciseName`)} className="input-animated mt-1" /> */}
                     {form.formState.errors.loggedExercises?.[exerciseIndex]?.exerciseName && (
                       <p className="text-sm text-destructive mt-1">{form.formState.errors.loggedExercises?.[exerciseIndex]?.exerciseName?.message}</p>
                     )}
@@ -222,10 +233,6 @@ export default function LogWorkoutPage() {
   );
 }
 
-// Minimal DatePicker component for now
-// In a real app, this would be more robust, likely using shadcn/ui Calendar + Popover
-// components/shared/DatePicker.tsx
 export function FormItem({children, className}: {children: React.ReactNode, className?: string}) {
   return <div className={`space-y-1.5 ${className}`}>{children}</div>;
 }
-

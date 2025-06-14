@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { PlusSquare, Edit3, Trash2, Save, Image as ImageIcon, Info, PlusCircle } from "lucide-react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
@@ -63,13 +63,13 @@ export default function CustomExercisesPage() {
     defaultValues: { name: "", variations: "", imageUrl: "", instructions: "" },
   });
 
-  useEffect(() => {
-    // Simulate fetching custom exercises
-    setCustomExercises([
-      { id: "cust1", name: "Cable Crossover", variations: "High to Low", imageUrl: "https://placehold.co/100x100.png", instructions: "Pull cables down and across your body." },
-      { id: "cust2", name: " concentración ", variations: "Concentration Curl", imageUrl: "https://placehold.co/100x100.png", instructions: "Isolate bicep by curling dumbbell towards shoulder." },
-    ]);
-  }, []);
+  // useEffect(() => {
+    // Simulate fetching custom exercises - In a real app, this would be from localStorage or a backend
+    // setCustomExercises([
+    //   { id: "cust1", name: "Cable Crossover", variations: "High to Low", imageUrl: "https://placehold.co/100x100.png", instructions: "Pull cables down and across your body." },
+    //   { id: "cust2", name: " concentración ", variations: "Concentration Curl", imageUrl: "https://placehold.co/100x100.png", instructions: "Isolate bicep by curling dumbbell towards shoulder." },
+    // ]);
+  // }, []);
   
   useEffect(() => {
     if (editingExercise) {
@@ -250,4 +250,3 @@ export default function CustomExercisesPage() {
 function FormItem({children, className}: {children: React.ReactNode, className?: string}) {
   return <div className={`space-y-1.5 ${className}`}>{children}</div>;
 }
-

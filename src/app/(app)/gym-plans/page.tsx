@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,7 +8,7 @@ import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, Glass
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ListChecks, PlusCircle, Edit3, Trash2, CheckCircle, XCircle, PlayCircle } from "lucide-react";
-import { MOCK_GYM_PLANS_DATA } from "@/lib/constants";
+// import { MOCK_GYM_PLANS_DATA } from "@/lib/constants"; // Mock data removed
 import type { GymPlan } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -26,10 +27,10 @@ export default function GymPlansPage() {
   const [plans, setPlans] = useState<GymPlan[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Simulate fetching plans
-    setPlans(MOCK_GYM_PLANS_DATA);
-  }, []);
+  // useEffect(() => {
+    // Simulate fetching plans - In a real app, this would be an API call
+    // setPlans(MOCK_GYM_PLANS_DATA);
+  // }, []);
 
   const handleDeletePlan = (planId: string) => {
     // Simulate deleting a plan
@@ -53,7 +54,7 @@ export default function GymPlansPage() {
         description="Create, manage, and activate your workout routines."
         icon={ListChecks}
         actions={
-          <Link href="/gym-plans/create" passHref>
+          <Link href="/gym-plans/create">
             <Button className="btn-animated"><PlusCircle className="mr-2 h-4 w-4" />Create New Plan</Button>
           </Link>
         }
@@ -82,7 +83,7 @@ export default function GymPlansPage() {
                 </p>
               </GlassCardContent>
               <GlassCardFooter className="flex flex-col sm:flex-row gap-2">
-                <Link href={`/gym-plans/${plan.id}`} passHref className="w-full sm:w-auto">
+                <Link href={`/gym-plans/${plan.id}`} className="w-full sm:w-auto">
                   <Button variant="outline" className="w-full btn-animated"><Edit3 className="mr-2 h-4 w-4" />View/Edit</Button>
                 </Link>
                 {!plan.isActive && (
@@ -119,7 +120,7 @@ export default function GymPlansPage() {
         <GlassCard>
           <GlassCardContent className="pt-6 text-center">
             <p className="text-lg text-muted-foreground">No gym plans found.</p>
-            <Link href="/gym-plans/create" passHref>
+            <Link href="/gym-plans/create">
               <Button className="mt-4 btn-animated"><PlusCircle className="mr-2 h-4 w-4" />Create Your First Plan</Button>
             </Link>
           </GlassCardContent>

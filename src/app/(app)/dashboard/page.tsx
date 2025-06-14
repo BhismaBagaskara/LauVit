@@ -5,7 +5,6 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { LayoutDashboard, Target, CalendarDays, BarChart, TrendingUp, Sparkles, Dumbbell } from "lucide-react";
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, GlassCardContent } from "@/components/shared/GlassCard";
 import { Calendar } from "@/components/ui/calendar";
-import { MOCK_PERSONAL_RECORDS_DATA, MOCK_WORKOUT_LOGS_DATA } from "@/lib/constants";
 import type { PersonalRecord, WorkoutSession } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
@@ -84,11 +83,11 @@ export default function DashboardPage() {
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutSession[]>([]);
 
-  useEffect(() => {
+  // useEffect(() => {
     // In a real app, fetch this data
-    setPersonalRecords(MOCK_PERSONAL_RECORDS_DATA);
-    setWorkoutLogs(MOCK_WORKOUT_LOGS_DATA);
-  }, []);
+    // setPersonalRecords(MOCK_PERSONAL_RECORDS_DATA);
+    // setWorkoutLogs(MOCK_WORKOUT_LOGS_DATA);
+  // }, []);
 
   return (
     <div className="space-y-8">
@@ -97,7 +96,7 @@ export default function DashboardPage() {
         description="Your fitness journey at a glance."
         icon={LayoutDashboard}
         actions={
-          <Link href="/log-workout" passHref>
+          <Link href="/log-workout">
             <Button className="btn-animated"><Dumbbell className="mr-2 h-4 w-4" />Log New Workout</Button>
           </Link>
         }
@@ -125,9 +124,10 @@ export default function DashboardPage() {
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
-            <p className="text-2xl font-semibold">Starting Strength</p>
-            <p className="text-sm text-muted-foreground">Current focus: Building foundational strength</p>
-            <Link href="/gym-plans" passHref>
+            {/* This part might need adjustment if active plan comes from dynamic data */}
+            <p className="text-2xl font-semibold">No Active Plan</p> 
+            <p className="text-sm text-muted-foreground">Set a plan as active from Gym Plans page.</p>
+            <Link href="/gym-plans">
               <Button variant="link" className="px-0 text-primary">View Plans</Button>
             </Link>
           </GlassCardContent>
@@ -142,7 +142,7 @@ export default function DashboardPage() {
           </GlassCardHeader>
           <GlassCardContent>
             <p className="text-sm text-muted-foreground">Ready for personalized advice?</p>
-             <Link href="/ai-trainer" passHref>
+             <Link href="/ai-trainer">
               <Button variant="secondary" className="mt-2 btn-animated">Consult AI Trainer</Button>
             </Link>
           </GlassCardContent>

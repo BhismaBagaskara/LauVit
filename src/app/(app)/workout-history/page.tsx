@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, GlassCardContent } from "@/components/shared/GlassCard";
 import { History, CalendarDays, ListOrdered, Edit3, Trash2 } from "lucide-react";
-import { MOCK_WORKOUT_LOGS_DATA } from "@/lib/constants";
+// import { MOCK_WORKOUT_LOGS_DATA } from "@/lib/constants"; // Mock data removed
 import type { WorkoutSession, LoggedExercise, WorkoutSet } from "@/lib/types";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -27,13 +27,13 @@ export default function WorkoutHistoryPage() {
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // In a real app, fetch this data
-    setWorkoutSessions(MOCK_WORKOUT_LOGS_DATA);
-  }, []);
+  // useEffect(() => {
+    // In a real app, fetch this data from localStorage or a backend
+    // setWorkoutSessions(MOCK_WORKOUT_LOGS_DATA);
+  // }, []);
 
   const handleDeleteSession = (sessionId: string) => {
-    // Simulate deleting a session
+    // Simulate deleting a session - In a real app, update localStorage or call backend
     setWorkoutSessions(prevSessions => prevSessions.filter(session => session.id !== sessionId));
     toast({ title: "Session Deleted", description: "The workout session has been removed from your history." });
   };
@@ -82,9 +82,9 @@ export default function WorkoutHistoryPage() {
                   <p className="text-xs text-muted-foreground">Tidak ada latihan spesifik yang dicatat untuk sesi ini.</p>
                 )}
               </GlassCardContent>
-               <GlassCardContent className="pt-0 flex gap-2"> {/* Changed to GlassCardContent for consistent padding */}
+               <GlassCardContent className="pt-0 flex gap-2"> 
                 {/* Edit button could link to log-workout page with prefilled data in a real scenario */}
-                {/* <Link href={`/log-workout?edit=${session.id}`} passHref>
+                {/* <Link href={`/log-workout?edit=${session.id}`} >
                   <Button variant="outline" size="sm" className="btn-animated flex-1"><Edit3 className="mr-2 h-4 w-4" />Edit</Button>
                 </Link> */}
                 <AlertDialog>
@@ -112,7 +112,7 @@ export default function WorkoutHistoryPage() {
         <GlassCard>
           <GlassCardContent className="pt-6 text-center">
             <p className="text-lg text-muted-foreground">Belum ada sesi latihan yang dicatat.</p>
-            <Link href="/log-workout" passHref>
+            <Link href="/log-workout">
               <Button className="mt-4 btn-animated">Catat Sesi Latihan Pertama Anda</Button>
             </Link>
           </GlassCardContent>

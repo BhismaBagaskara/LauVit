@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -10,13 +11,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from "@/components/shared/GlassCard";
-import { PlusCircle, Trash2, Save, FileText, Image as ImageIcon, AlertTriangle, Info } from "lucide-react";
+import { PlusCircle, Trash2, Save, FileText, Image as ImageIcon, AlertTriangle, Info, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { GymPlan, Exercise } from "@/lib/types";
-import { MOCK_EXERCISES_DATA } from "@/lib/constants"; // For exercise suggestions
+// import { MOCK_EXERCISES_DATA } from "@/lib/constants"; // Mock data removed
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getExerciseInstructions } from "@/ai/flows/exercise-instruction-assistance";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
@@ -56,6 +57,15 @@ export function GymPlanForm({ initialData }: GymPlanFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [aiInstructions, setAiInstructions] = useState<{ exerciseIndex: number, text: string, isLoading: boolean } | null>(null);
+  const [availableExercises, setAvailableExercises] = useState<{label: string, value: string}[]>([]);
+
+  useEffect(() => {
+    // In a real app, fetch custom exercises and perhaps a global list
+    // For now, MOCK_EXERCISES_DATA is empty, so this will be empty too.
+    // const exerciseOptions = MOCK_EXERCISES_DATA.map(ex => ({label: `${ex.name} ${ex.variations ? `(${ex.variations})` : ''}`, value: ex.id}));
+    // setAvailableExercises(exerciseOptions);
+  }, []);
+
 
   const form = useForm<GymPlanFormValues>({
     resolver: zodResolver(gymPlanSchema),
@@ -161,19 +171,33 @@ export function GymPlanForm({ initialData }: GymPlanFormProps) {
                       name={`exercises.${index}.name`}
                       control={form.control}
                       render={({ field: selectField }) => (
-                        <Select onValueChange={selectField.onChange} defaultValue={selectField.value}>
+                        <Select 
+                          onValueChange={(value) => {
+                            if (value === 'custom') {
+                               // Potentially open a dialog to add custom exercise or navigate
+                              // For now, allow typing directly or clear field
+                              selectField.onChange(''); // Clear or handle custom input
+                            } else {
+                              selectField.onChange(value);
+                            }
+                          }} 
+                          defaultValue={selectField.value}
+                        >
                           <SelectTrigger className="input-animated">
                             <SelectValue placeholder="Select or type exercise" />
                           </SelectTrigger>
                           <SelectContent>
-                            {MOCK_EXERCISES_DATA.map(ex => (
-                              <SelectItem key={ex.id} value={`${ex.name} ${ex.variations ? `(${ex.variations})` : ''}`}>{`${ex.name} ${ex.variations ? `(${ex.variations})` : ''}`}</SelectItem>
+                            {availableExercises.map(ex => (
+                              <SelectItem key={ex.value} value={ex.label}>{ex.label}</SelectItem>
                             ))}
-                            <SelectItem value="custom">Add Custom Exercise Name...</SelectItem> {/* Placeholder */}
+                             {/* If availableExercises is empty, this is the only option */}
+                            <SelectItem value="custom">Add Custom Exercise Name...</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
                     />
+                     {/* Fallback to Input if select doesn't cover direct typing well, or enhance Select for creatable options */}
+                     {/* <Input placeholder="Type exercise name" {...form.register(`exercises.${index}.name`)} className="input-animated mt-1" /> */}
                   {form.formState.errors.exercises?.[index]?.name && <p className="text-sm text-destructive mt-1">{form.formState.errors.exercises?.[index]?.name?.message}</p>}
                 </FormItem>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -205,6 +229,7 @@ export function GymPlanForm({ initialData }: GymPlanFormProps) {
                   <Label htmlFor={`exercises.${index}.instructions`}>Instructions (Optional)</Label>
                   <Textarea id={`exercises.${index}.instructions`} {...form.register(`exercises.${index}.instructions`)} placeholder="Step-by-step guidance..." className="input-animated"/>
                   <Button type="button" variant="link" size="sm" className="px-0 text-primary" onClick={() => handleGetAiInstructions(index)} disabled={aiInstructions?.isLoading && aiInstructions.exerciseIndex === index}>
+                    {aiInstructions?.isLoading && aiInstructions.exerciseIndex === index ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
                     {aiInstructions?.isLoading && aiInstructions.exerciseIndex === index ? "Loading..." : "Get AI Instructions"}
                   </Button>
                 </FormItem>
@@ -220,7 +245,9 @@ export function GymPlanForm({ initialData }: GymPlanFormProps) {
             <Button type="button" variant="secondary" onClick={addExercise} className="btn-animated">
               <PlusCircle className="mr-2 h-4 w-4" /> Add Exercise
             </Button>
-             {form.formState.errors.exercises?.message && <p className="text-sm text-destructive mt-1">{form.formState.errors.exercises?.message}</p>}
+             {form.formState.errors.exercises?.root?.message && <p className="text-sm text-destructive mt-1">{form.formState.errors.exercises?.root?.message}</p>}
+             {typeof form.formState.errors.exercises === 'string' && <p className="text-sm text-destructive mt-1">{form.formState.errors.exercises}</p>}
+
           </div>
           
           <Alert variant="default" className="bg-primary/10 border-primary/30">
@@ -247,4 +274,3 @@ export function GymPlanForm({ initialData }: GymPlanFormProps) {
 function FormItem({children, className}: {children: React.ReactNode, className?: string}) {
   return <div className={`space-y-1.5 ${className}`}>{children}</div>;
 }
-
