@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { LoggedExercise, WorkoutSet, GymPlan, Exercise as PlanExercise } from "@/lib/types";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
-import { format } from "date-fns"; // Added for formatDate usage
+import { format } from "date-fns"; 
 
 const workoutSetSchema = z.object({
   reps: z.coerce.number().min(0, "Reps must be a non-negative number"),
@@ -25,7 +25,7 @@ const workoutSetSchema = z.object({
 });
 
 const loggedExerciseSchema = z.object({
-  exerciseId: z.string().optional(), // Store ID from plan if available
+  exerciseId: z.string().optional(), 
   exerciseName: z.string().min(1, "Exercise name is required"),
   variations: z.string().optional(),
   sets: z.array(workoutSetSchema).min(1, "Add at least one set"),
@@ -60,7 +60,13 @@ export default function LogWorkoutPage() {
         setActivePlan(currentActivePlan);
 
         if (currentActivePlan) {
-          const uniqueDays = Array.from(new Set(currentActivePlan.exercises.map(ex => ex.day).filter(Boolean as (value: any) => value is string)));
+          const uniqueDays = Array.from(
+            new Set(
+              currentActivePlan.exercises
+                .map(ex => ex.day)
+                .filter((day): day is string => typeof day === 'string' && day.trim() !== '') 
+            )
+          );
           setWorkoutDayOptions(uniqueDays.map(day => ({ label: day, value: day })));
         } else {
           setWorkoutDayOptions([]);
@@ -73,7 +79,7 @@ export default function LogWorkoutPage() {
     resolver: zodResolver(workoutSessionSchema),
     defaultValues: {
       date: new Date(),
-      workoutDay: undefined, // Default to undefined to show placeholder
+      workoutDay: undefined, 
       loggedExercises: [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }],
     },
   });
@@ -93,6 +99,7 @@ export default function LogWorkoutPage() {
             history = JSON.parse(storedHistory);
         }
     }
+    // @ts-ignore
     const newSession = { ...data, id: `sess_${Date.now()}` };
     history.push(newSession);
     if (typeof window !== 'undefined') {
@@ -105,12 +112,18 @@ export default function LogWorkoutPage() {
     });
     form.reset({
       date: new Date(),
-      workoutDay: undefined, // Reset to undefined
+      workoutDay: undefined, 
       loggedExercises: [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }],
       notes: "",
     });
     if (activePlan) {
-        const uniqueDays = Array.from(new Set(activePlan.exercises.map(ex => ex.day).filter(Boolean as (value: any) => value is string)));
+        const uniqueDays = Array.from(
+            new Set(
+              activePlan.exercises
+                .map(ex => ex.day)
+                .filter((day): day is string => typeof day === 'string' && day.trim() !== '')
+            )
+          );
         setWorkoutDayOptions(uniqueDays.map(day => ({ label: day, value: day })));
     } else {
         setWorkoutDayOptions([]);
@@ -138,7 +151,7 @@ export default function LogWorkoutPage() {
       }));
       
       form.setValue("loggedExercises", newLoggedExercises.length > 0 ? newLoggedExercises : [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }]);
-    } else { // Handles GENERAL_WORKOUT_VALUE (passed as "" here) or no active plan
+    } else { 
       form.setValue("loggedExercises", [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }]);
     }
   };
@@ -194,16 +207,15 @@ export default function LogWorkoutPage() {
                     <FormItem>
                     <Label className="flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Workout Day</Label>
                     <Select
-                        onValueChange={(value) => { // value is the selected SelectItem's value prop
-                          field.onChange(value); // Update form state with "_general_" or actual day name
-                          // For exercise loading, treat "_general_" as "no specific day from plan" (empty string)
+                        onValueChange={(value) => { 
+                          field.onChange(value); 
                           handleWorkoutDayChange(value === GENERAL_WORKOUT_VALUE ? "" : value);
                         }}
-                        value={field.value} // Controlled by form state (undefined, "_general_", or day name)
+                        value={field.value || ""} 
                         disabled={!activePlan || workoutDayOptions.length === 0}
                     >
                         <SelectTrigger className="input-animated">
-                          <SelectValue placeholder="Select day from active plan or leave blank" />
+                          <SelectValue placeholder="Select day from active plan or general" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={GENERAL_WORKOUT_VALUE}>General Workout (No Plan Day)</SelectItem>
