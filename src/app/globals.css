@@ -60,8 +60,8 @@ body {
     --muted-foreground: 0 0% 60%;
     --accent: 30 90% 60%; /* Slightly Lighter/Softer Orange */
     --accent-foreground: 30 90% 10%; /* Dark Orange/Brown for text on accent */
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 30 100% 50%; /* Changed to Vibrant Orange */
+    --destructive-foreground: 30 100% 10%; /* Changed to Dark Orange/Brown */
     --border: 0 0% 20%; /* Border for cards, inputs */
     --input: 0 0% 18%; /* Input background */
     --ring: 30 100% 50%; /* Vibrant Orange for focus rings */
