@@ -63,7 +63,7 @@ export default function AiTrainerPage() {
       <div className="grid md:grid-cols-2 gap-8 items-start">
         <GlassCard className="animate-slide-in-up">
           <GlassCardHeader>
-            <GlassCardTitle>Your Information</GlassCardTitle>
+            <GlassCardTitle className="text-foreground">Your Information</GlassCardTitle>
             <GlassCardDescription>Provide details for personalized advice.</GlassCardDescription>
           </GlassCardHeader>
           <GlassCardContent>
