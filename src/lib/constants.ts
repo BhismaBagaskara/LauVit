@@ -1,3 +1,4 @@
+
 import type { NavItem } from '@/lib/types';
 import {
   LayoutDashboard,
@@ -8,7 +9,8 @@ import {
   Bot,
   Settings,
   LogIn,
-  UserPlus
+  UserPlus,
+  History // Added History icon
 } from 'lucide-react';
 
 export const APP_NAME = "Lauvit";
@@ -16,6 +18,7 @@ export const APP_NAME = "Lauvit";
 export const SIDEBAR_NAV_ITEMS: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Log Workout', href: '/log-workout', icon: Dumbbell },
+  { title: 'Record Sesi Latihan', href: '/workout-history', icon: History }, // New menu item
   { title: 'Gym Plans', href: '/gym-plans', icon: ListChecks },
   { title: 'Add Custom Exercise', href: '/custom-exercises', icon: PlusSquare },
   { title: 'Body Composition', href: '/body-composition', icon: BarChart3 },
