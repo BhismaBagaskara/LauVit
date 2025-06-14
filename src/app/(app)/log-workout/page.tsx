@@ -3,7 +3,7 @@
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Dumbbell, CalendarPlus, StickyNote, PlusCircle, Trash2, Save, Loader2 } from "lucide-react";
-import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from "@/components/shared/GlassCard";
+import { GlassCard, GlassCardContent } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +14,7 @@ import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
-import type { LoggedExercise, WorkoutSet, GymPlan, Exercise as PlanExercise } from "@/lib/types";
+import type { LoggedExercise, WorkoutSet, GymPlan, Exercise as PlanExercise, Day as PlanDay } from "@/lib/types";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { format } from "date-fns"; 
@@ -25,16 +25,16 @@ const workoutSetSchema = z.object({
 });
 
 const loggedExerciseSchema = z.object({
-  exerciseId: z.string().optional(), 
+  exerciseId: z.string(), 
   exerciseName: z.string().min(1, "Exercise name is required"),
-  variations: z.string().optional(),
+  variation: z.string().optional(),
   sets: z.array(workoutSetSchema).min(1, "Add at least one set"),
   notes: z.string().optional(),
 });
 
 const workoutSessionSchema = z.object({
   date: z.date({ required_error: "Date is required" }),
-  workoutDay: z.string().optional(),
+  workoutDay: z.string().optional(), // Stores the selected Day's name from the plan
   loggedExercises: z.array(loggedExerciseSchema).min(1, "Log at least one exercise"),
   notes: z.string().optional(),
 });
@@ -45,10 +45,10 @@ const GENERAL_WORKOUT_VALUE = "_general_";
 
 export default function LogWorkoutPage() {
   const { toast } = useToast();
-  const [availableExercises, setAvailableExercises] = useState<{label: string, value: string}[]>([]);
+  // const [availableExercises, setAvailableExercises] = useState<{label: string, value: string}[]>([]); // No longer needed
   const [gymPlans, setGymPlans] = useState<GymPlan[]>([]);
   const [activePlan, setActivePlan] = useState<GymPlan | null>(null);
-  const [workoutDayOptions, setWorkoutDayOptions] = useState<{ label: string; value: string }[]>([]);
+  const [workoutDayOptions, setWorkoutDayOptions] = useState<{ label: string; value: string }[]>([]); // For Day names
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -59,15 +59,15 @@ export default function LogWorkoutPage() {
         const currentActivePlan = parsedPlans.find(p => p.isActive) || null;
         setActivePlan(currentActivePlan);
 
-        if (currentActivePlan) {
+        if (currentActivePlan && currentActivePlan.days) {
           const uniqueDays = Array.from(
             new Set(
-              currentActivePlan.exercises
-                .map(ex => ex.day)
-                .filter((day): day is string => typeof day === 'string' && day.trim() !== '') 
+              currentActivePlan.days
+                .map(day => day.name)
+                .filter((dayName): dayName is string => typeof dayName === 'string' && dayName.trim() !== '') 
             )
           );
-          setWorkoutDayOptions(uniqueDays.map(day => ({ label: day, value: day })));
+          setWorkoutDayOptions(uniqueDays.map(dayName => ({ label: dayName, value: dayName })));
         } else {
           setWorkoutDayOptions([]);
         }
@@ -80,7 +80,7 @@ export default function LogWorkoutPage() {
     defaultValues: {
       date: new Date(),
       workoutDay: undefined, 
-      loggedExercises: [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }],
+      loggedExercises: [{ exerciseId: "", exerciseName: "", sets: [{ reps: 0, weight: 0 }] }], // Initial state, will be overridden
     },
   });
 
@@ -90,7 +90,6 @@ export default function LogWorkoutPage() {
   });
 
   const onSubmit = (data: WorkoutSessionFormValues) => {
-    console.log("Workout Logged:", data);
     const workoutHistoryKey = `${APP_NAME}_workoutHistory`;
     let history: WorkoutSessionFormValues[] = [];
     if (typeof window !== 'undefined') {
@@ -99,7 +98,6 @@ export default function LogWorkoutPage() {
             history = JSON.parse(storedHistory);
         }
     }
-    // @ts-ignore
     const newSession = { ...data, id: `sess_${Date.now()}` };
     history.push(newSession);
     if (typeof window !== 'undefined') {
@@ -113,18 +111,19 @@ export default function LogWorkoutPage() {
     form.reset({
       date: new Date(),
       workoutDay: undefined, 
-      loggedExercises: [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }],
+      loggedExercises: [{ exerciseId: "", exerciseName: "", variation: "", sets: [{ reps: 0, weight: 0 }], notes:"" }],
       notes: "",
     });
-    if (activePlan) {
+     // Re-initialize workoutDayOptions after reset if activePlan exists
+    if (activePlan && activePlan.days) {
         const uniqueDays = Array.from(
             new Set(
-              activePlan.exercises
-                .map(ex => ex.day)
-                .filter((day): day is string => typeof day === 'string' && day.trim() !== '')
+              activePlan.days
+                .map(day => day.name)
+                .filter((dayName): dayName is string => typeof dayName === 'string' && dayName.trim() !== '')
             )
           );
-        setWorkoutDayOptions(uniqueDays.map(day => ({ label: day, value: day })));
+        setWorkoutDayOptions(uniqueDays.map(dayName => ({ label: dayName, value: dayName })));
     } else {
         setWorkoutDayOptions([]);
     }
@@ -134,45 +133,55 @@ export default function LogWorkoutPage() {
     try {
         return new Intl.DateTimeFormat('en-US', { dateStyle: 'long' }).format(date);
     } catch (e) {
-        return date.toLocaleDateString();
+        return date instanceof Date && !isNaN(date.valueOf()) ? date.toLocaleDateString() : "Invalid Date";
     }
   };
 
-  const handleWorkoutDayChange = (selectedDayValue: string) => {
-    if (activePlan && selectedDayValue && selectedDayValue !== GENERAL_WORKOUT_VALUE) {
-      const exercisesForDay: PlanExercise[] = activePlan.exercises.filter(ex => ex.day === selectedDayValue);
+  const handleWorkoutDayChange = (selectedDayName: string) => {
+    form.setValue("loggedExercises", []); // Clear previous exercises
+    if (activePlan && selectedDayName && selectedDayName !== GENERAL_WORKOUT_VALUE) {
+      const selectedPlanDay = activePlan.days.find(day => day.name === selectedDayName);
       
-      const newLoggedExercises: LoggedExercise[] = exercisesForDay.map(planExercise => ({
-        exerciseId: planExercise.id,
-        exerciseName: planExercise.name,
-        variations: planExercise.variations || "",
-        sets: Array.from({ length: planExercise.sets || 1 }, () => ({ reps: 0, weight: 0 })),
-        notes: `Target: ${planExercise.sets} sets of ${planExercise.reps}. ${planExercise.instructions ? `Instructions: ${planExercise.instructions.substring(0,50)}...` : ''}`,
-      }));
-      
-      form.setValue("loggedExercises", newLoggedExercises.length > 0 ? newLoggedExercises : [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }]);
+      if (selectedPlanDay && selectedPlanDay.exercises) {
+        const newLoggedExercises: LoggedExercise[] = selectedPlanDay.exercises.map(planExercise => ({
+          exerciseId: planExercise.id, // Use the ID from the plan's exercise
+          exerciseName: planExercise.name,
+          variation: planExercise.variation,
+          sets: Array.from({ length: planExercise.sets || 1 }, () => ({ reps: 0, weight: 0 })), // User fills actuals
+          notes: `Target: ${planExercise.sets} sets of ${planExercise.reps} reps. Variation: ${planExercise.variation}.`,
+        }));
+        
+        if (newLoggedExercises.length > 0) {
+          form.setValue("loggedExercises", newLoggedExercises);
+        } else {
+          // If the day has no exercises (shouldn't happen with validation in plan form)
+          append({ exerciseId: "", exerciseName: "", variation: "", sets: [{ reps: 0, weight: 0 }], notes:"" });
+        }
+      }
     } else { 
-      form.setValue("loggedExercises", [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }]);
+      // General workout or no day selected, provide one blank exercise
+      append({ exerciseId: `custom_${Date.now()}`, exerciseName: "", variation: "", sets: [{ reps: 0, weight: 0 }], notes:"" });
     }
   };
 
   const addExercise = () => {
-    append({ exerciseName: "", sets: [{ reps: 0, weight: 0 }], notes: "" });
+    // For general workouts, ID can be custom. For plan-based, this might be less common.
+    append({ exerciseId: `custom_${Date.now()}`, exerciseName: "", variation: "", sets: [{ reps: 0, weight: 0 }], notes: "" });
   };
 
   const addSet = (exerciseIndex: number) => {
     const currentSets = form.getValues(`loggedExercises.${exerciseIndex}.sets`);
     const newSets: WorkoutSet[] = [...currentSets, { reps: 0, weight: 0 }];
-    // @ts-ignore
-    update(exerciseIndex, { ...form.getValues(`loggedExercises.${exerciseIndex}`), sets: newSets });
+    const currentExercise = form.getValues(`loggedExercises.${exerciseIndex}`);
+    update(exerciseIndex, { ...currentExercise, sets: newSets });
  };
 
   const removeSet = (exerciseIndex: number, setIndex: number) => {
     const currentSets = form.getValues(`loggedExercises.${exerciseIndex}.sets`);
     if (currentSets.length > 1) {
       const newSets = currentSets.filter((_, i) => i !== setIndex);
-      // @ts-ignore
-      update(exerciseIndex, { ...form.getValues(`loggedExercises.${exerciseIndex}`), sets: newSets });
+      const currentExercise = form.getValues(`loggedExercises.${exerciseIndex}`);
+      update(exerciseIndex, { ...currentExercise, sets: newSets });
     } else {
       toast({variant: "destructive", title: "Cannot remove", description: "Each exercise must have at least one set."})
     }
@@ -209,7 +218,7 @@ export default function LogWorkoutPage() {
                     <Select
                         onValueChange={(value) => { 
                           field.onChange(value); 
-                          handleWorkoutDayChange(value === GENERAL_WORKOUT_VALUE ? "" : value);
+                          handleWorkoutDayChange(value); // Pass the actual day name or _general_
                         }}
                         value={field.value || ""} 
                         disabled={!activePlan || workoutDayOptions.length === 0}
@@ -251,51 +260,31 @@ export default function LogWorkoutPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormItem>
                     <Label>Exercise Name</Label>
-                     <Controller
-                        name={`loggedExercises.${exerciseIndex}.exerciseName`}
-                        control={form.control}
-                        render={({ field: selectField }) => (
-                          <Select 
-                            onValueChange={(value) => {
-                                if (value === 'custom') {
-                                    selectField.onChange(''); 
-                                    toast({title: "Custom Exercise", description: "Type the name of your custom exercise."})
-                                } else {
-                                    selectField.onChange(value);
-                                }
-                            }} 
-                            value={selectField.value}
-                           >
-                            <SelectTrigger className="input-animated">
-                              <SelectValue placeholder="Select or type exercise" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableExercises.map(ex => (
-                                <SelectItem key={ex.value} value={ex.label}>{ex.label}</SelectItem>
-                              ))}
-                               <SelectItem value="custom">Type Custom Exercise Name...</SelectItem> 
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
                      <Input 
-                        placeholder="Type or confirm exercise name" 
+                        placeholder="Exercise name from plan or type custom" 
                         {...form.register(`loggedExercises.${exerciseIndex}.exerciseName`)} 
                         className="input-animated mt-1" 
+                        // Read-only if workoutDay is selected and not general, to prevent changing plan exercises
+                        readOnly={!!form.getValues("workoutDay") && form.getValues("workoutDay") !== GENERAL_WORKOUT_VALUE} 
                       />
                     {form.formState.errors.loggedExercises?.[exerciseIndex]?.exerciseName && (
                       <p className="text-sm text-destructive mt-1">{form.formState.errors.loggedExercises?.[exerciseIndex]?.exerciseName?.message}</p>
                     )}
                   </FormItem>
                   <FormItem>
-                    <Label>Variations (Optional)</Label>
-                    <Input placeholder="e.g., Incline, Close Grip" {...form.register(`loggedExercises.${exerciseIndex}.variations`)} className="input-animated" />
+                    <Label>Variation</Label>
+                    <Input 
+                        placeholder="Variation from plan or type custom" 
+                        {...form.register(`loggedExercises.${exerciseIndex}.variation`)} 
+                        className="input-animated" 
+                        readOnly={!!form.getValues("workoutDay") && form.getValues("workoutDay") !== GENERAL_WORKOUT_VALUE}
+                    />
                   </FormItem>
                 </div>
                 
                 <div className="space-y-2">
                   <Label>Sets</Label>
-                  {form.getValues(`loggedExercises.${exerciseIndex}.sets`).map((_set, setIndex) => (
+                  {form.getValues(`loggedExercises.${exerciseIndex}.sets`)?.map((_set, setIndex) => (
                     <div key={`${field.id}-set-${setIndex}`} className="flex items-center gap-2">
                       <Input
                         type="number"
@@ -333,10 +322,14 @@ export default function LogWorkoutPage() {
                 </FormItem>
               </GlassCard>
             ))}
+            
+            {/* Allow adding custom exercises only if it's a general workout or no workout day is selected */}
+            {(!form.getValues("workoutDay") || form.getValues("workoutDay") === GENERAL_WORKOUT_VALUE) && (
+              <Button type="button" variant="secondary" onClick={addExercise} className="btn-animated">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Another Exercise
+              </Button>
+            )}
 
-            <Button type="button" variant="secondary" onClick={addExercise} className="btn-animated">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Another Exercise
-            </Button>
 
             <FormItem>
               <Label>Overall Session Notes (Optional)</Label>
@@ -363,4 +356,3 @@ export default function LogWorkoutPage() {
 export function FormItem({children, className}: {children: React.ReactNode, className?: string}) {
   return <div className={`space-y-1.5 ${className}`}>{children}</div>;
 }
-

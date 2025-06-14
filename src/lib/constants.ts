@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Dumbbell,
   ListChecks,
-  PlusSquare,
   BarChart3,
   Bot,
   Settings,
@@ -12,6 +11,7 @@ import {
   UserPlus,
   History
 } from 'lucide-react';
+import type { ExerciseVariation } from '@/lib/types';
 
 export const APP_NAME = "Lauvit";
 
@@ -20,7 +20,7 @@ export const SIDEBAR_NAV_ITEMS: NavItem[] = [
   { title: 'Log Workout', href: '/log-workout', icon: Dumbbell },
   { title: 'Record Sesi Latihan', href: '/workout-history', icon: History },
   { title: 'Gym Plans', href: '/gym-plans', icon: ListChecks },
-  { title: 'Add Custom Exercise', href: '/custom-exercises', icon: PlusSquare },
+  // { title: 'Add Custom Exercise', href: '/custom-exercises', icon: PlusSquare }, // Removed
   { title: 'Body Composition', href: '/body-composition', icon: BarChart3 },
   { title: 'AI Trainer', href: '/ai-trainer', icon: Bot },
   { title: 'Settings', href: '/settings', icon: Settings },
@@ -31,7 +31,16 @@ export const AUTH_NAV_ITEMS: NavItem[] = [
   { title: 'Sign Up', href: '/signup', icon: UserPlus },
 ];
 
-export const MOCK_EXERCISES_DATA: any[] = [];
+export const EXERCISE_VARIATIONS_OPTIONS: { label: string; value: ExerciseVariation }[] = [
+  { label: "Cable", value: "Cable" },
+  { label: "Cable Unilateral", value: "Cable Unilateral" },
+  { label: "Machine", value: "Machine" },
+  { label: "Machine Unilateral", value: "Machine Unilateral" },
+  { label: "Dumbbell", value: "Dumbbell" },
+  { label: "Barbell", value: "Barbell" },
+];
+
+
 export const MOCK_GYM_PLANS_DATA: any[] = [];
 export const MOCK_PERSONAL_RECORDS_DATA: any[] = [];
 export const MOCK_WORKOUT_LOGS_DATA: any[] = [];

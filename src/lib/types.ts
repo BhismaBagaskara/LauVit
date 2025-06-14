@@ -5,19 +5,23 @@ export interface User {
   // Add other user-specific fields if needed
 }
 
+export const EXERCISE_VARIATIONS = [
+  "Cable", "Cable Unilateral", "Machine", "Machine Unilateral", "Dumbbell", "Barbell"
+] as const;
+export type ExerciseVariation = typeof EXERCISE_VARIATIONS[number];
+
 export interface Exercise {
-  id: string;
+  id: string; // For react-hook-form key
   name: string;
-  variations?: string; // e.g., "Incline", "Decline"
+  variation: ExerciseVariation;
   sets: number;
   reps: string; // e.g., "8-12" or "AMRAP"
-  imageUrl?: string;
-  instructions?: string;
-  day?: string; // e.g., "Monday", "Push Day"
 }
 
-export interface ManualExercise extends Omit<Exercise, 'day' | 'sets' | 'reps'> {
-  // Custom fields for manually added exercises if different
+export interface Day {
+  id: string; // For react-hook-form key
+  name: string; // e.g., "Day 1", "Push Day"
+  exercises: Exercise[];
 }
 
 export interface GymPlan {
@@ -25,10 +29,22 @@ export interface GymPlan {
   name: string;
   description?: string;
   isActive: boolean;
-  exercises: Exercise[];
+  days: Day[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface ManualExercise {
+  // This type is no longer actively used with the removal of custom exercises page
+  // but kept for potential reference or future use if functionality is re-added.
+  // It should be reviewed if custom exercises are re-introduced.
+  id: string;
+  name: string;
+  variations?: string;
+  imageUrl?: string;
+  instructions?: string;
+}
+
 
 export interface WorkoutSet {
   reps: number;
@@ -36,17 +52,17 @@ export interface WorkoutSet {
 }
 
 export interface LoggedExercise {
-  exerciseId: string; // or name if not linked to a plan
+  exerciseId: string; // Corresponds to Exercise.id from the plan
   exerciseName: string;
-  variations?: string;
+  variation?: string; // Will store the selected ExerciseVariation as string
   sets: WorkoutSet[];
-  notes?: string;
+  notes?: string; // Could include target sets/reps from plan
 }
 
 export interface WorkoutSession {
   id: string;
   date: Date;
-  workoutDay?: string; // e.g., "Push Day", "Leg Day"
+  workoutDay?: string; // e.g., "Push Day", "Leg Day" from Plan Day Name
   loggedExercises: LoggedExercise[];
   notes?: string; // Overall session notes
 }

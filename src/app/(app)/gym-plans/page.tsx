@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, GlassCardContent, GlassCardFooter } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ListChecks, PlusCircle, Edit3, Trash2, CheckCircle, XCircle, PlayCircle } from "lucide-react";
+import { ListChecks, PlusCircle, Edit3, Trash2, CheckCircle, XCircle, PlayCircle, CalendarDays } from "lucide-react";
 import type { GymPlan } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { APP_NAME } from "@/lib/constants";
@@ -86,15 +86,24 @@ export default function GymPlansPage() {
                 <GlassCardDescription>{plan.description || "No description available."}</GlassCardDescription>
               </GlassCardHeader>
               <GlassCardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground">
-                  Exercises: <span className="font-semibold text-foreground">{plan.exercises.length}</span>
+                <p className="text-sm text-muted-foreground flex items-center">
+                  <CalendarDays className="mr-2 h-4 w-4 text-primary" />
+                  Days: <span className="font-semibold text-foreground ml-1">{plan.days.length}</span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total Exercises: {plan.days.reduce((acc, day) => acc + day.exercises.length, 0)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Last updated: {new Date(plan.updatedAt).toLocaleDateString()}
                 </p>
-                 <p className="text-xs text-muted-foreground mt-1">
-                  Days: {Array.from(new Set(plan.exercises.map(e => e.day).filter(Boolean))).join(', ') || 'N/A'}
-                </p>
+                <div className="mt-2">
+                    <p className="text-xs font-medium text-muted-foreground">Day Names:</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                        {plan.days.length > 0 ? plan.days.map(day => (
+                            <Badge key={day.id} variant="outline" className="text-xs">{day.name}</Badge>
+                        )) : <span className="text-xs text-muted-foreground">No days defined.</span>}
+                    </div>
+                </div>
               </GlassCardContent>
               <GlassCardFooter className="flex flex-col sm:flex-row gap-2">
                 <Link href={`/gym-plans/${plan.id}`} className="w-full sm:w-auto">
