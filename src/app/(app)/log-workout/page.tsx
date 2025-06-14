@@ -1,0 +1,231 @@
+"use client";
+
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Dumbbell, CalendarPlus, StickyNote, PlusCircle, Trash2, Save } from "lucide-react";
+import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from "@/components/shared/GlassCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/shared/DatePicker"; // Assuming a DatePicker component exists
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { MOCK_EXERCISES_DATA } from "@/lib/constants"; // For exercise suggestions
+import type { LoggedExercise, WorkoutSet } from "@/lib/types";
+import { useEffect, useState } from "react";
+
+const workoutSetSchema = z.object({
+  reps: z.coerce.number().min(0, "Reps must be positive"),
+  weight: z.coerce.number().min(0, "Weight must be positive"),
+});
+
+const loggedExerciseSchema = z.object({
+  exerciseName: z.string().min(1, "Exercise name is required"),
+  variations: z.string().optional(),
+  sets: z.array(workoutSetSchema).min(1, "Add at least one set"),
+  notes: z.string().optional(),
+});
+
+const workoutSessionSchema = z.object({
+  date: z.date({ required_error: "Date is required" }),
+  workoutDay: z.string().optional(),
+  loggedExercises: z.array(loggedExerciseSchema).min(1, "Log at least one exercise"),
+  notes: z.string().optional(),
+});
+
+type WorkoutSessionFormValues = z.infer<typeof workoutSessionSchema>;
+
+export default function LogWorkoutPage() {
+  const { toast } = useToast();
+  const [availableExercises, setAvailableExercises] = useState<{label: string, value: string}[]>([]);
+
+  useEffect(() => {
+    // Simulate fetching user's exercises (from plans + custom)
+    const exerciseOptions = MOCK_EXERCISES_DATA.map(ex => ({label: `${ex.name} ${ex.variations ? `(${ex.variations})` : ''}`, value: ex.id}));
+    setAvailableExercises(exerciseOptions);
+  }, []);
+
+  const form = useForm<WorkoutSessionFormValues>({
+    resolver: zodResolver(workoutSessionSchema),
+    defaultValues: {
+      date: new Date(),
+      loggedExercises: [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }],
+    },
+  });
+
+  const { fields, append, remove, update } = useFieldArray({
+    control: form.control,
+    name: "loggedExercises",
+  });
+
+  const onSubmit = (data: WorkoutSessionFormValues) => {
+    console.log("Workout Logged:", data);
+    toast({
+      title: "Workout Logged!",
+      description: `Session for ${data.workoutDay || 'General Workout'} on ${data.date.toLocaleDateString()} saved.`,
+    });
+    form.reset();
+  };
+
+  const addExercise = () => {
+    append({ exerciseName: "", sets: [{ reps: 0, weight: 0 }], notes: "" });
+  };
+
+  const addSet = (exerciseIndex: number) => {
+    const currentSets = form.getValues(`loggedExercises.${exerciseIndex}.sets`);
+    const newSets: WorkoutSet[] = [...currentSets, { reps: 0, weight: 0 }];
+    // @ts-ignore
+    update(exerciseIndex, { ...form.getValues(`loggedExercises.${exerciseIndex}`), sets: newSets });
+ };
+
+  const removeSet = (exerciseIndex: number, setIndex: number) => {
+    const currentSets = form.getValues(`loggedExercises.${exerciseIndex}.sets`);
+    if (currentSets.length > 1) {
+      const newSets = currentSets.filter((_, i) => i !== setIndex);
+      // @ts-ignore
+      update(exerciseIndex, { ...form.getValues(`loggedExercises.${exerciseIndex}`), sets: newSets });
+    } else {
+      toast({variant: "destructive", title: "Cannot remove", description: "Each exercise must have at least one set."})
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <PageHeader
+        title="Log Workout Session"
+        description="Record your performance and track your progress."
+        icon={Dumbbell}
+      />
+      <GlassCard>
+        <GlassCardContent className="pt-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Controller
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label className="flex items-center"><CalendarPlus className="mr-2 h-4 w-4 text-primary" />Date</Label>
+                    <DatePicker date={field.value} setDate={field.onChange} />
+                    {form.formState.errors.date && <p className="text-sm text-destructive mt-1">{form.formState.errors.date.message}</p>}
+                  </FormItem>
+                )}
+              />
+              <FormItem>
+                <Label className="flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Workout Day (Optional)</Label>
+                <Input placeholder="e.g., Push Day, Leg Day" {...form.register("workoutDay")} className="input-animated" />
+              </FormItem>
+            </div>
+
+            {fields.map((field, exerciseIndex) => (
+              <GlassCard key={field.id} variant="opaque" className="p-4 space-y-4 relative">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
+                  onClick={() => fields.length > 1 ? remove(exerciseIndex) : toast({variant: "destructive", title: "Cannot remove", description: "Must log at least one exercise."})}
+                  aria-label="Remove exercise"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormItem>
+                    <Label>Exercise Name</Label>
+                     <Controller
+                        name={`loggedExercises.${exerciseIndex}.exerciseName`}
+                        control={form.control}
+                        render={({ field: selectField }) => (
+                          <Select onValueChange={selectField.onChange} defaultValue={selectField.value}>
+                            <SelectTrigger className="input-animated">
+                              <SelectValue placeholder="Select or type exercise" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableExercises.map(ex => (
+                                <SelectItem key={ex.value} value={ex.label}>{ex.label}</SelectItem>
+                              ))}
+                               <SelectItem value="custom">Add Custom Exercise...</SelectItem> 
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    {form.formState.errors.loggedExercises?.[exerciseIndex]?.exerciseName && (
+                      <p className="text-sm text-destructive mt-1">{form.formState.errors.loggedExercises?.[exerciseIndex]?.exerciseName?.message}</p>
+                    )}
+                  </FormItem>
+                  <FormItem>
+                    <Label>Variations (Optional)</Label>
+                    <Input placeholder="e.g., Incline, Close Grip" {...form.register(`loggedExercises.${exerciseIndex}.variations`)} className="input-animated" />
+                  </FormItem>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Sets</Label>
+                  {form.getValues(`loggedExercises.${exerciseIndex}.sets`).map((_set, setIndex) => (
+                    <div key={`${field.id}-set-${setIndex}`} className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        placeholder="Reps"
+                        {...form.register(`loggedExercises.${exerciseIndex}.sets.${setIndex}.reps`)}
+                        className="input-animated w-1/3"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Weight (kg)"
+                        {...form.register(`loggedExercises.${exerciseIndex}.sets.${setIndex}.weight`)}
+                        className="input-animated w-1/3"
+                      />
+                      <span className="w-1/3 text-sm text-muted-foreground text-center">Set {setIndex + 1}</span>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeSet(exerciseIndex, setIndex)} aria-label="Remove set">
+                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={() => addSet(exerciseIndex)} className="btn-animated">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Set
+                  </Button>
+                   {form.formState.errors.loggedExercises?.[exerciseIndex]?.sets?.message && (
+                      <p className="text-sm text-destructive mt-1">{form.formState.errors.loggedExercises?.[exerciseIndex]?.sets?.message}</p>
+                    )}
+                </div>
+
+                <FormItem>
+                  <Label>Notes (Optional)</Label>
+                  <Textarea placeholder="e.g., Felt strong, focus on form" {...form.register(`loggedExercises.${exerciseIndex}.notes`)} className="input-animated" />
+                </FormItem>
+              </GlassCard>
+            ))}
+
+            <Button type="button" variant="secondary" onClick={addExercise} className="btn-animated">
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Another Exercise
+            </Button>
+
+            <FormItem>
+              <Label>Overall Session Notes (Optional)</Label>
+              <Textarea placeholder="General notes about the session" {...form.register("notes")} className="input-animated" />
+            </FormItem>
+
+            <Button type="submit" className="w-full btn-animated md:w-auto" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Save Workout
+            </Button>
+            {form.formState.errors.loggedExercises?.message && (
+                <p className="text-sm text-destructive mt-1">{form.formState.errors.loggedExercises?.message}</p>
+            )}
+          </form>
+        </GlassCardContent>
+      </GlassCard>
+    </div>
+  );
+}
+
+// Minimal DatePicker component for now
+// In a real app, this would be more robust, likely using shadcn/ui Calendar + Popover
+// components/shared/DatePicker.tsx
+export function FormItem({children, className}: {children: React.ReactNode, className?: string}) {
+  return <div className={`space-y-1.5 ${className}`}>{children}</div>;
+}
+
