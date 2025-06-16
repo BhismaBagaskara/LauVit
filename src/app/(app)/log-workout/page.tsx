@@ -278,7 +278,7 @@ export default function LogWorkoutPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Sets</Label>
+                  <Label>Reps & Weight</Label>
                   {form.getValues(`loggedExercises.${exerciseIndex}.sets`)?.map((_set, setIndex) => (
                     <div key={`${field.id}-set-${setIndex}`} className="flex items-center gap-2">
                       <Input
