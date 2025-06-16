@@ -16,7 +16,7 @@ export default function EditGymPlanPage() {
   const router = useRouter();
   const [plan, setPlan] = useState<GymPlan | null>(null);
   const [loading, setLoading] = useState(true);
-  const planId = params.id as string;
+  const planId = params?.id as string; // Safer access to params.id
 
   useEffect(() => {
     if (planId && typeof window !== 'undefined') {
@@ -32,10 +32,11 @@ export default function EditGymPlanPage() {
         }
       }
       setLoading(false);
-    } else if (!planId) {
-        setLoading(false); // No planId, stop loading
+    } else {
+      // This handles cases where planId is undefined (e.g., params.id is not available yet or invalid)
+      // or typeof window === 'undefined' (less likely here but good for completeness).
+      setLoading(false);
     }
-    // Add dependency for typeof window !== 'undefined' check indirectly
   }, [planId, router]);
 
 
