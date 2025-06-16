@@ -5,10 +5,10 @@ import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, GlassCardContent } from "@/components/shared/GlassCard";
 import { History, CalendarDays, ListOrdered, Edit3, Trash2 } from "lucide-react";
-import type { WorkoutSession } from "@/lib/types"; // WorkoutSession might need an ID
+import type { WorkoutSession } from "@/lib/types"; // Use WorkoutSession directly
 import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import Link from "next/link"; // If edit functionality is re-added
+import Link from "next/link"; 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,22 +22,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
-// Ensure WorkoutSession has an 'id' for key and deletion
-interface WorkoutSessionWithId extends WorkoutSession {
-    id: string; // or number, whatever is generated
-}
-
 
 export default function WorkoutHistoryPage() {
-  const [workoutSessions, setWorkoutSessions] = useState<WorkoutSessionWithId[]>([]);
+  const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedHistory = localStorage.getItem(`${APP_NAME}_workoutHistory`);
       if (storedHistory) {
-        // Parse and ensure dates are Date objects
-        const parsedSessions: WorkoutSessionWithId[] = JSON.parse(storedHistory).map((session: any) => ({
+        const parsedSessions: WorkoutSession[] = JSON.parse(storedHistory).map((session: any) => ({
             ...session,
             date: new Date(session.date) 
         }));
@@ -50,7 +44,6 @@ export default function WorkoutHistoryPage() {
     try {
         return new Intl.DateTimeFormat('en-US', { dateStyle: 'long' }).format(date);
     } catch (e) {
-        // Fallback for environments where Intl might not be fully supported or date is invalid
         return date instanceof Date && !isNaN(date.valueOf()) ? date.toLocaleDateString() : "Invalid Date";
     }
   };
@@ -74,12 +67,12 @@ export default function WorkoutHistoryPage() {
 
       {workoutSessions.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          {workoutSessions.slice().reverse().map((session, index) => ( // Show newest first
+          {workoutSessions.slice().reverse().map((session, index) => ( 
             <GlassCard key={session.id} className="animate-slide-in-up flex flex-col" style={{animationDelay: `${index * 0.05}s`}}>
               <GlassCardHeader>
                 <div className="flex justify-between items-start">
                   <GlassCardTitle className="text-xl">
-                    {session.workoutDay || "Sesi Latihan Umum"}
+                    {session.workoutDay && session.workoutDay !== "_general_" ? session.workoutDay : "Sesi Latihan Umum"}
                   </GlassCardTitle>
                   <span className="text-xs text-muted-foreground flex items-center">
                     <CalendarDays className="mr-1 h-3 w-3" />
@@ -94,7 +87,7 @@ export default function WorkoutHistoryPage() {
                   <ul className="space-y-2 text-xs">
                     {session.loggedExercises.map((exercise, exIndex) => (
                       <li key={exIndex} className="p-2 bg-card/50 rounded-md border border-white/10">
-                        <p className="font-medium">{exercise.exerciseName} {exercise.variations && `(${exercise.variations})`}</p>
+                        <p className="font-medium">{exercise.exerciseName} {exercise.variation && `(${exercise.variation})`}</p>
                         <ul className="list-disc list-inside pl-2 text-muted-foreground">
                           {exercise.sets.map((set, setIndex) => (
                             <li key={setIndex}>{set.reps} reps @ {set.weight}kg</li>
@@ -109,10 +102,6 @@ export default function WorkoutHistoryPage() {
                 )}
               </GlassCardContent>
                <GlassCardContent className="pt-0 flex gap-2"> 
-                {/* Edit button could link to log-workout page with prefilled data in a real scenario */}
-                {/* <Link href={`/log-workout?edit=${session.id}`} >
-                  <Button variant="outline" size="sm" className="btn-animated flex-1"><Edit3 className="mr-2 h-4 w-4" />Edit</Button>
-                </Link> */}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="sm" className="btn-animated flex-1"><Trash2 className="mr-2 h-4 w-4" />Hapus Sesi</Button>

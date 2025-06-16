@@ -5,11 +5,12 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { LayoutDashboard, Target, CalendarDays, BarChart, TrendingUp, Sparkles, Dumbbell } from "lucide-react";
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, GlassCardContent } from "@/components/shared/GlassCard";
 import { Calendar } from "@/components/ui/calendar";
-import type { PersonalRecord, WorkoutSession } from "@/lib/types";
+import type { PersonalRecord, WorkoutSession, GymPlan } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { APP_NAME } from "@/lib/constants";
 
 function PersonalRecordsCard({ records }: { records: PersonalRecord[] }) {
   return (
@@ -46,7 +47,7 @@ function WorkoutStreakCalendar({ workoutLogs }: { workoutLogs: WorkoutSession[] 
 
   useEffect(() => {
     const daysWithWorkouts = new Set(
-      workoutLogs.map(log => format(log.date, "yyyy-MM-dd"))
+      workoutLogs.map(log => format(new Date(log.date), "yyyy-MM-dd")) // Ensure log.date is treated as Date
     );
     setWorkoutDays(daysWithWorkouts);
   }, [workoutLogs]);
@@ -79,15 +80,93 @@ function WorkoutStreakCalendar({ workoutLogs }: { workoutLogs: WorkoutSession[] 
   );
 }
 
+const calculatePersonalRecords = (sessions: WorkoutSession[]): PersonalRecord[] => {
+  const recordsMap = new Map<string, PersonalRecord>();
+
+  sessions.forEach(session => {
+      const sessionDate = new Date(session.date);
+      session.loggedExercises.forEach(exercise => {
+          exercise.sets.forEach(set => {
+              if (set.weight > 0) {
+                  const exerciseKey = `${exercise.exerciseName}${exercise.variation ? ` (${exercise.variation})` : ''}`;
+                  const currentRecord = recordsMap.get(exerciseKey);
+
+                  if (!currentRecord) {
+                      recordsMap.set(exerciseKey, {
+                          exerciseName: exerciseKey,
+                          highestWeight: set.weight,
+                          maxRepsAtWeight: { reps: set.reps, weight: set.weight },
+                          date: sessionDate
+                      });
+                  } else {
+                      let newRecordData: Partial<PersonalRecord> = {};
+                      let shouldUpdate = false;
+
+                      if (set.weight > currentRecord.highestWeight) {
+                          newRecordData = {
+                              highestWeight: set.weight,
+                              maxRepsAtWeight: { reps: set.reps, weight: set.weight },
+                              date: sessionDate
+                          };
+                          shouldUpdate = true;
+                      } else if (set.weight === currentRecord.highestWeight) {
+                          if (!currentRecord.maxRepsAtWeight || set.reps > currentRecord.maxRepsAtWeight.reps) {
+                              newRecordData = {
+                                  maxRepsAtWeight: { reps: set.reps, weight: set.weight },
+                                  // Update date only if this new PR (same weight, higher reps) is more recent
+                                  date: sessionDate > currentRecord.date ? sessionDate : currentRecord.date
+                              };
+                              shouldUpdate = true;
+                          } else if (currentRecord.maxRepsAtWeight && set.reps === currentRecord.maxRepsAtWeight.reps && sessionDate > currentRecord.date) {
+                              // Same weight, same reps, but more recent date
+                              newRecordData = { date: sessionDate };
+                              shouldUpdate = true;
+                          }
+                      }
+                      
+                      if (shouldUpdate) {
+                           recordsMap.set(exerciseKey, { ...currentRecord, ...newRecordData });
+                      }
+                  }
+              }
+          });
+      });
+  });
+  return Array.from(recordsMap.values()).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
+
 export default function DashboardPage() {
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutSession[]>([]);
+  const [activePlanName, setActivePlanName] = useState<string>("No Active Plan");
 
-  // useEffect(() => {
-    // In a real app, fetch this data
-    // setPersonalRecords(MOCK_PERSONAL_RECORDS_DATA);
-    // setWorkoutLogs(MOCK_WORKOUT_LOGS_DATA);
-  // }, []);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const storedHistory = localStorage.getItem(`${APP_NAME}_workoutHistory`);
+        let parsedSessions: WorkoutSession[] = [];
+        if (storedHistory) {
+            parsedSessions = JSON.parse(storedHistory).map((session: any) => ({
+                ...session,
+                date: new Date(session.date) 
+            }));
+            setWorkoutLogs(parsedSessions);
+            const calculatedRecords = calculatePersonalRecords(parsedSessions);
+            setPersonalRecords(calculatedRecords);
+        }
+
+        const storedPlans = localStorage.getItem(`${APP_NAME}_gymPlans`);
+        if (storedPlans) {
+            const plans: GymPlan[] = JSON.parse(storedPlans);
+            const currentActivePlan = plans.find(p => p.isActive);
+            if (currentActivePlan) {
+                setActivePlanName(currentActivePlan.name);
+            } else {
+                setActivePlanName("No Active Plan");
+            }
+        }
+    }
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -124,9 +203,10 @@ export default function DashboardPage() {
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
-            {/* This part might need adjustment if active plan comes from dynamic data */}
-            <p className="text-2xl font-semibold">No Active Plan</p> 
-            <p className="text-sm text-muted-foreground">Set a plan as active from Gym Plans page.</p>
+            <p className="text-2xl font-semibold">{activePlanName}</p> 
+            {activePlanName === "No Active Plan" && (
+                <p className="text-sm text-muted-foreground">Set a plan as active from Gym Plans page.</p>
+            )}
             <Link href="/gym-plans">
               <Button variant="link" className="px-0 text-primary">View Plans</Button>
             </Link>
