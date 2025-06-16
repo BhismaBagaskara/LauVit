@@ -12,6 +12,7 @@ interface AuthContextType {
   login: (email?: string, password?: string) => Promise<void>;
   signup: (email?: string, password?: string) => Promise<void>;
   googleSignIn: () => Promise<void>;
+  saveUserData: (userId: string, data: any) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -48,9 +49,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    const mockUser: User = { id: 'mock-user-id', email: email || 'user@example.com', name: 'Mock User' };
+    const mockUserId = 'mock-user-id'; // Replace with actual user ID from backend
+    const mockUser: User = { id: mockUserId, email: email || 'user@example.com', name: 'Mock User' };
     setUser(mockUser);
     localStorage.setItem(`${APP_NAME}_user`, JSON.stringify(mockUser));
+
+    // Simulate saving user data after login
+    const initialUserData = { preferences: { theme: 'dark' } }; // Example initial data
+ await saveUserData(mockUserId, initialUserData);
+
     setLoading(false);
     router.push('/dashboard');
   };
@@ -59,9 +66,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    const mockUser: User = { id: 'mock-new-user-id', email: email || 'newuser@example.com', name: 'New User' };
+    const mockNewUserId = 'mock-new-user-id'; // Replace with actual user ID from backend
+    const mockUser: User = { id: mockNewUserId, email: email || 'newuser@example.com', name: 'New User' };
     setUser(mockUser);
     localStorage.setItem(`${APP_NAME}_user`, JSON.stringify(mockUser));
+
+    // Simulate saving user data after signup
+    const initialUserData = { preferences: { theme: 'light' } }; // Example initial data
+ await saveUserData(mockNewUserId, initialUserData);
+
     setLoading(false);
     router.push('/dashboard');
   };
@@ -69,9 +82,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const googleSignIn = async () => {
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
-    const mockUser: User = { id: 'mock-google-user-id', email: 'googleuser@example.com', name: 'Google User' };
+    const mockGoogleUserId = 'mock-google-user-id'; // Replace with actual user ID from backend
+    const mockUser: User = { id: mockGoogleUserId, email: 'googleuser@example.com', name: 'Google User' };
     setUser(mockUser);
     localStorage.setItem(`${APP_NAME}_user`, JSON.stringify(mockUser));
+
+    // Simulate saving user data after Google sign-in
+    const initialUserData = { preferences: { theme: 'system' } }; // Example initial data
+ await saveUserData(mockGoogleUserId, initialUserData);
+
     setLoading(false);
     router.push('/dashboard');
   };
@@ -86,8 +105,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   };
 
+  const saveUserData = async (userId: string, data: any) => {
+    console.log(`Simulating saving user data for user ID: ${userId}`, data);
+    // In a real application, you would make an API call here to save data to your backend
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, googleSignIn, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, googleSignIn, saveUserData, logout }}>
       {children}
     </AuthContext.Provider>
   );
